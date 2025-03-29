@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bumsiku/domain"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -9,17 +10,14 @@ import (
 )
 
 func PostLogin(c *gin.Context) {
-	var loginVals struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
+	var loginVals domain.LoginRequest
 
 	if err := c.ShouldBindJSON(&loginVals); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad Request"})
 		return
 	}
 
-	if loginVals.Username != os.Getenv("ADMIN_ID") || loginVals.Password != os.Getenv("ADMIN_PW") {
+	if validateLogin(loginVals) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to login"})
 		return
 	}
@@ -34,4 +32,8 @@ func PostLogin(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Login Successful"})
+}
+
+func validateLogin(value domain.LoginRequest) bool {
+	return !(value.Username == os.Getenv("ADMIN_ID") && value.Password == os.Getenv("ADMIN_PW"))
 }
