@@ -22,11 +22,7 @@ func PostLogin(c *gin.Context) {
 		return
 	}
 
-	session := sessions.Default(c)
-	session.Set("admin", true)
-	session.Set("username", loginVals.Username)
-	session.Set("loginTime", time.Now())
-	if err := session.Save(); err != nil {
+	if err := activateSession(c, loginVals.Username); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
 		return
 	}
@@ -36,4 +32,15 @@ func PostLogin(c *gin.Context) {
 
 func validateLogin(value domain.LoginRequest) bool {
 	return !(value.Username == os.Getenv("ADMIN_ID") && value.Password == os.Getenv("ADMIN_PW"))
+}
+
+func activateSession(c *gin.Context, username string) error {
+	session := sessions.Default(c)
+	session.Set("admin", true)
+	session.Set("username", username)
+	session.Set("loginTime", time.Now())
+	if err := session.Save(); err != nil {
+		return err
+	}
+	return nil
 }
