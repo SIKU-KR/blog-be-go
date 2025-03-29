@@ -17,7 +17,7 @@ func PostLogin(c *gin.Context) {
 		return
 	}
 
-	if validateLogin(loginVals) {
+	if isValidLogin(loginVals) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to login"})
 		return
 	}
@@ -30,7 +30,7 @@ func PostLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Login Successful"})
 }
 
-func validateLogin(value domain.LoginRequest) bool {
+func isValidLogin(value domain.LoginRequest) bool {
 	return !(value.Username == os.Getenv("ADMIN_ID") && value.Password == os.Getenv("ADMIN_PW"))
 }
 
