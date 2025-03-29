@@ -15,7 +15,7 @@ const SESSION_STORE_NAME = "loginSession"
 
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
-	router.Use(sessions.Sessions(SESSION_STORE_NAME, createSessionStore()))
+	router.Use(sessions.Sessions(SESSION_STORE_NAME, newSessionStore()))
 
 	// Public Endpoints
 	router.POST("/login", handler.PostLogin)
@@ -27,7 +27,7 @@ func SetupRouter() *gin.Engine {
 	return router
 }
 
-func createSessionStore() sessions.Store {
+func newSessionStore() sessions.Store {
 	store := cookie.NewStore([]byte(os.Getenv("SESSION_SECRET")))
 	store.Options(sessions.Options{
 		MaxAge:   7200,
