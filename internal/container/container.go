@@ -23,4 +23,4 @@ func NewContainer(ctx context.Context) (*Container, error) {
 	return &Container{
 		PostRepository: postRepo,
 	}, nil
-} 
+}

@@ -10,7 +10,7 @@ import (
 
 type GetPostsResponse struct {
 	Posts     interface{} `json:"posts"`
-	NextToken *string    `json:"nextToken,omitempty"`
+	NextToken *string     `json:"nextToken,omitempty"`
 }
 
 func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
@@ -57,4 +57,4 @@ func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 			NextToken: result.NextToken,
 		})
 	}
-} 
+}

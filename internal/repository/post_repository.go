@@ -27,9 +27,9 @@ func NewPostRepository(client *dynamodb.Client) *PostRepository {
 }
 
 type GetPostsInput struct {
-	Category    *string
-	NextToken   *string
-	PageSize    *int32
+	Category  *string
+	NextToken *string
+	PageSize  *int32
 }
 
 type GetPostsOutput struct {
@@ -40,7 +40,7 @@ type GetPostsOutput struct {
 func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error) {
 	// 기본 쿼리 설정
 	keyEx := expression.Key("postId").BeginsWith("")
-	
+
 	// 프로젝션 표현식 추가 - 필요한 필드만 가져오기
 	proj := expression.NamesList(
 		expression.Name("postId"),
@@ -49,7 +49,7 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 		expression.Name("updatedAt"),
 		expression.Name("summary"),
 	)
-	
+
 	expr, err := expression.NewBuilder().
 		WithKeyCondition(keyEx).
 		WithProjection(proj).
@@ -125,4 +125,3 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 		NextToken: nextToken,
 	}, nil
 }
-

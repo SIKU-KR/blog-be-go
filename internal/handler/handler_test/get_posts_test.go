@@ -164,4 +164,4 @@ func TestGetPosts_Error(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, "게시글 목록 조회에 실패했습니다", response["error"])
-} 
+}
