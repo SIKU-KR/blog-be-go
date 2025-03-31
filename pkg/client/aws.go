@@ -24,4 +24,4 @@ func NewS3Client(ctx context.Context) (*s3.Client, error) {
 		return nil, err
 	}
 	return s3.NewFromConfig(cfg), nil
-}
+} 

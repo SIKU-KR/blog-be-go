@@ -1,8 +1,8 @@
 package container
 
 import (
-	"bumsiku/internal/client"
 	"bumsiku/internal/repository"
+	"bumsiku/pkg/client"
 	"context"
 )
 
