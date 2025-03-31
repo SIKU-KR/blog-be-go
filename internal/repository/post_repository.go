@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-const POST_TABLE_NAME = "posts"
+const POST_TABLE_NAME = "blog_posts"
 const PAGE_SIZE = 10
 
 type PostRepositoryInterface interface {
@@ -40,7 +40,20 @@ type GetPostsOutput struct {
 func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error) {
 	// 기본 쿼리 설정
 	keyEx := expression.Key("postId").BeginsWith("")
-	expr, err := expression.NewBuilder().WithKeyCondition(keyEx).Build()
+	
+	// 프로젝션 표현식 추가 - 필요한 필드만 가져오기
+	proj := expression.NamesList(
+		expression.Name("postId"),
+		expression.Name("title"),
+		expression.Name("createdAt"),
+		expression.Name("updatedAt"),
+		expression.Name("summary"),
+	)
+	
+	expr, err := expression.NewBuilder().
+		WithKeyCondition(keyEx).
+		WithProjection(proj).
+		Build()
 	if err != nil {
 		return nil, err
 	}
@@ -57,21 +70,26 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 		KeyConditionExpression:    expr.KeyCondition(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
-		Limit:                    aws.Int32(int32(limit)),
-		ScanIndexForward:         aws.Bool(false), // 최신순 정렬
+		ProjectionExpression:      expr.Projection(),
+		Limit:                     aws.Int32(int32(limit)),
+		ScanIndexForward:          aws.Bool(false), // 최신순 정렬
 	}
 
 	// 카테고리 필터링이 있는 경우
 	if input.Category != nil && *input.Category != "" {
 		queryInput.IndexName = aws.String("category-index")
 		keyEx = expression.Key("category").Equal(expression.Value(*input.Category))
-		expr, err = expression.NewBuilder().WithKeyCondition(keyEx).Build()
+		expr, err = expression.NewBuilder().
+			WithKeyCondition(keyEx).
+			WithProjection(proj).
+			Build()
 		if err != nil {
 			return nil, err
 		}
 		queryInput.KeyConditionExpression = expr.KeyCondition()
 		queryInput.ExpressionAttributeNames = expr.Names()
 		queryInput.ExpressionAttributeValues = expr.Values()
+		queryInput.ProjectionExpression = expr.Projection()
 	}
 
 	// 페이지네이션 토큰이 있는 경우
