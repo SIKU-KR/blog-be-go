@@ -52,6 +52,21 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 	return r.processPostsQueryResult(result)
 }
 
+func (r *PostRepository) GetPostByID(ctx context.Context, postID string) (*domain.Post, error) {
+	result, err := r.client.GetItem(ctx, &dynamodb.GetItemInput{
+		TableName: aws.String(PostTableName),
+		Key: map[string]types.AttributeValue{
+			"postId": &types.AttributeValueMemberS{Value: postID},
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return unmarshallPostItem(result.Item)
+}
+
 func (r *PostRepository) buildPostsQueryInput(input *GetPostsInput) (*dynamodb.QueryInput, error) {
 	expr, err := buildPostListExpression("")
 	if err != nil {
@@ -161,21 +176,6 @@ func resolvePageSize(pageSize *int32) int32 {
 		return PageSize
 	}
 	return *pageSize
-}
-
-func (r *PostRepository) GetPostByID(ctx context.Context, postID string) (*domain.Post, error) {
-	result, err := r.client.GetItem(ctx, &dynamodb.GetItemInput{
-		TableName: aws.String(PostTableName),
-		Key: map[string]types.AttributeValue{
-			"postId": &types.AttributeValueMemberS{Value: postID},
-		},
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return unmarshallPostItem(result.Item)
 }
 
 func unmarshallPostItem(item map[string]types.AttributeValue) (*domain.Post, error) {
