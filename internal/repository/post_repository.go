@@ -11,33 +11,42 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-const POST_TABLE_NAME = "blog_posts"
-const PAGE_SIZE = 10
+// PostTableName은 DynamoDB 게시글 테이블 이름입니다.
+const PostTableName = "blog_posts"
 
+// PageSize는 한 페이지에 표시할 게시글 수의 기본값입니다.
+const PageSize = 10
+
+// PostRepositoryInterface는 게시글 저장소의 인터페이스를 정의합니다.
 type PostRepositoryInterface interface {
 	GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error)
-	GetPostById(ctx context.Context, postId string) (*domain.Post, error)
+	GetPostByID(ctx context.Context, postID string) (*domain.Post, error)
 }
 
+// PostRepository는 DynamoDB를 사용하는 게시글 저장소입니다.
 type PostRepository struct {
 	client *dynamodb.Client
 }
 
+// NewPostRepository는 새로운 PostRepository 인스턴스를 생성합니다.
 func NewPostRepository(client *dynamodb.Client) *PostRepository {
 	return &PostRepository{client: client}
 }
 
+// GetPostsInput은 게시글 목록 조회에 필요한 입력 파라미터를 정의합니다.
 type GetPostsInput struct {
 	Category  *string
 	NextToken *string
 	PageSize  *int32
 }
 
+// GetPostsOutput은 게시글 목록 조회 결과를 담는 구조체입니다.
 type GetPostsOutput struct {
 	Posts     []domain.Post
 	NextToken *string
 }
 
+// GetPosts는 게시글 목록을 조회합니다.
 func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error) {
 	// 기본 쿼리 설정
 	keyEx := expression.Key("postId").BeginsWith("")
@@ -60,14 +69,14 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 	}
 
 	// 페이지 크기 설정
-	limit := PAGE_SIZE
+	limit := PageSize
 	if input.PageSize != nil {
 		limit = int(*input.PageSize)
 	}
 
 	// 쿼리 입력 구성
 	queryInput := &dynamodb.QueryInput{
-		TableName:                 aws.String(POST_TABLE_NAME),
+		TableName:                 aws.String(PostTableName),
 		KeyConditionExpression:    expr.KeyCondition(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
@@ -127,11 +136,12 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 	}, nil
 }
 
-func (r *PostRepository) GetPostById(ctx context.Context, postId string) (*domain.Post, error) {
+// GetPostByID는 ID로 특정 게시글을 조회합니다.
+func (r *PostRepository) GetPostByID(ctx context.Context, postID string) (*domain.Post, error) {
 	result, err := r.client.GetItem(ctx, &dynamodb.GetItemInput{
-		TableName: aws.String(POST_TABLE_NAME),
+		TableName: aws.String(PostTableName),
 		Key: map[string]types.AttributeValue{
-			"postId": &types.AttributeValueMemberS{Value: postId},
+			"postId": &types.AttributeValueMemberS{Value: postID},
 		},
 	})
 

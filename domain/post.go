@@ -2,7 +2,7 @@ package domain
 
 import "time"
 
-// Partition Key: postId, Sort Key: createdAt
+// Post는 블로그 게시물 정보를 담는 구조체입니다. Partition Key로 postId, Sort Key로 createdAt을 사용합니다.
 // GSI: categoryId, Sort Key: createdAt
 type Post struct {
 	PostID    string    `json:"postId" dynamodbav:"postId"`

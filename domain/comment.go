@@ -2,7 +2,7 @@ package domain
 
 import "time"
 
-// Partition Key: postId, Sort Key: commentId
+// Comment는 Partition Key로 postId, Sort Key로 commentId를 사용합니다.
 type Comment struct {
 	CommentID string    `json:"commentId" dynamodbav:"commentId"`
 	PostID    string    `json:"postId" dynamodbav:"postId"`

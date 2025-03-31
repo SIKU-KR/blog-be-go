@@ -41,13 +41,13 @@ func (m *mockPostRepository) GetPosts(ctx context.Context, input *repository.Get
 	}, nil
 }
 
-func (m *mockPostRepository) GetPostById(ctx context.Context, postId string) (*domain.Post, error) {
+func (m *mockPostRepository) GetPostByID(ctx context.Context, postID string) (*domain.Post, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
 
 	for _, post := range m.posts {
-		if post.PostID == postId {
+		if post.PostID == postID {
 			return &post, nil
 		}
 	}

@@ -23,7 +23,7 @@ func TestGetPostById_Success(t *testing.T) {
 	c, w := SetupTestContext("GET", "/posts/post1", "")
 	c.Params = []gin.Param{{Key: "postId", Value: "post1"}}
 
-	handler.GetPostById(mockRepo)(c)
+	handler.GetPostByID(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -47,7 +47,7 @@ func TestGetPostById_NotFound(t *testing.T) {
 	c, w := SetupTestContext("GET", "/posts/nonexistent", "")
 	c.Params = []gin.Param{{Key: "postId", Value: "nonexistent"}}
 
-	handler.GetPostById(mockRepo)(c)
+	handler.GetPostByID(mockRepo)(c)
 
 	// Then
 	AssertResponseJSON(t, w, http.StatusNotFound, "error", "게시글을 찾을 수 없습니다")
@@ -64,7 +64,7 @@ func TestGetPostById_MissingId(t *testing.T) {
 	c, w := SetupTestContext("GET", "/posts/", "")
 	c.Params = []gin.Param{{Key: "postId", Value: ""}}
 
-	handler.GetPostById(mockRepo)(c)
+	handler.GetPostByID(mockRepo)(c)
 
 	// Then
 	AssertResponseJSON(t, w, http.StatusBadRequest, "error", "게시글 ID가 필요합니다")
@@ -81,7 +81,7 @@ func TestGetPostById_Error(t *testing.T) {
 	c, w := SetupTestContext("GET", "/posts/post1", "")
 	c.Params = []gin.Param{{Key: "postId", Value: "post1"}}
 
-	handler.GetPostById(mockRepo)(c)
+	handler.GetPostByID(mockRepo)(c)
 
 	// Then
 	AssertResponseJSON(t, w, http.StatusInternalServerError, "error", "게시글 조회에 실패했습니다")

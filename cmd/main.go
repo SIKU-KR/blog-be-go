@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"bumsiku/controller"
 	"bumsiku/internal/config"
 	"bumsiku/internal/container"
+	"bumsiku/internal/controller"
 )
 
 func main() {
