@@ -136,7 +136,6 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 	}, nil
 }
 
-// GetPostByID는 ID로 특정 게시글을 조회합니다.
 func (r *PostRepository) GetPostByID(ctx context.Context, postID string) (*domain.Post, error) {
 	result, err := r.client.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String(PostTableName),

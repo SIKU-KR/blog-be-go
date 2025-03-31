@@ -11,10 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SessionStoreName은 세션 스토어의 이름을 정의합니다.
 const SessionStoreName = "loginSession"
 
-// SetupRouter는 애플리케이션의 라우터를 설정하고 반환합니다.
 func SetupRouter(container *container.Container) *gin.Engine {
 	router := gin.Default()
 	router.Use(sessions.Sessions(SessionStoreName, newSessionStore()))
