@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SessionAuthMiddleware는 세션 기반 인증을 확인하는 미들웨어 함수를 반환합니다.
 func SessionAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)

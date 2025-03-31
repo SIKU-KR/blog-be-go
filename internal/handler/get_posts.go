@@ -8,13 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetPostsResponse는 게시글 목록 조회 응답 데이터를 담는 구조체입니다.
 type GetPostsResponse struct {
 	Posts     interface{} `json:"posts"`
 	NextToken *string     `json:"nextToken,omitempty"`
 }
 
-// GetPosts는 게시글 목록을 조회하는 핸들러 함수를 반환합니다.
 func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 쿼리 파라미터 파싱

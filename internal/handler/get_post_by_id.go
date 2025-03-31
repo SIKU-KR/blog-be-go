@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetPostByID는 ID로 특정 게시물을 조회하는 핸들러 함수를 반환합니다.
 func GetPostByID(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		postID := c.Param("postId")

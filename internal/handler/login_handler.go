@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// PostLogin은 사용자 로그인 요청을 처리하는 핸들러 함수입니다.
 func PostLogin(c *gin.Context) {
 	var loginVals domain.LoginRequest
 
