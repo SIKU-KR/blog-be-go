@@ -1,8 +1,9 @@
 package repository
 
 import (
-	"bumsiku/domain"
 	"context"
+
+	"bumsiku/internal/model"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -16,7 +17,7 @@ const PageSize = 10
 
 type PostRepositoryInterface interface {
 	GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error)
-	GetPostByID(ctx context.Context, postID string) (*domain.Post, error)
+	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
 }
 
 type PostRepository struct {
@@ -34,7 +35,7 @@ type GetPostsInput struct {
 }
 
 type GetPostsOutput struct {
-	Posts     []domain.Post
+	Posts     []model.Post
 	NextToken *string
 }
 
@@ -52,7 +53,7 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 	return r.processPostsQueryResult(result)
 }
 
-func (r *PostRepository) GetPostByID(ctx context.Context, postID string) (*domain.Post, error) {
+func (r *PostRepository) GetPostByID(ctx context.Context, postID string) (*model.Post, error) {
 	result, err := r.client.GetItem(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String(PostTableName),
 		Key: map[string]types.AttributeValue{
@@ -117,7 +118,7 @@ func (r *PostRepository) applyFilterByCategory(queryInput *dynamodb.QueryInput, 
 
 func (r *PostRepository) processPostsQueryResult(result *dynamodb.QueryOutput) (*GetPostsOutput, error) {
 	// 결과 변환
-	posts := make([]domain.Post, 0)
+	posts := make([]model.Post, 0)
 	err := attributevalue.UnmarshalListOfMaps(result.Items, &posts)
 	if err != nil {
 		return nil, err
@@ -178,12 +179,12 @@ func resolvePageSize(pageSize *int32) int32 {
 	return *pageSize
 }
 
-func unmarshallPostItem(item map[string]types.AttributeValue) (*domain.Post, error) {
+func unmarshallPostItem(item map[string]types.AttributeValue) (*model.Post, error) {
 	if item == nil {
 		return nil, nil
 	}
 
-	post := &domain.Post{}
+	post := &model.Post{}
 	err := attributevalue.UnmarshalMap(item, post)
 	if err != nil {
 		return nil, err

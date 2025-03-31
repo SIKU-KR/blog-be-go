@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"bumsiku/domain"
 	"bumsiku/internal/handler"
+	"bumsiku/internal/model"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -38,7 +38,7 @@ func TestGetPosts_Success(t *testing.T) {
 // [THEN] 상태코드 200과 필터링된 게시글 목록 반환 확인
 func TestGetPosts_WithCategory(t *testing.T) {
 	// Given
-	mockPosts := []domain.Post{CreateTestPosts()[0]} // tech 카테고리만
+	mockPosts := []model.Post{CreateTestPosts()[0]} // tech 카테고리만
 	mockRepo := &mockPostRepository{posts: mockPosts}
 
 	// When

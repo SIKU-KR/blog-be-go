@@ -1,4 +1,4 @@
-package domain
+package model
 
 // LoginRequest는 사용자 로그인 요청 데이터를 담는 구조체입니다.
 type LoginRequest struct {

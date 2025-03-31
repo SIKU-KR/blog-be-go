@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"bumsiku/domain"
+	"bumsiku/internal/model"
 	"net/http"
 	"os"
 	"time"
@@ -11,7 +11,7 @@ import (
 )
 
 func PostLogin(c *gin.Context) {
-	var loginVals domain.LoginRequest
+	var loginVals model.LoginRequest
 
 	if err := c.ShouldBindJSON(&loginVals); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad Request"})
@@ -31,7 +31,7 @@ func PostLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Login Successful"})
 }
 
-func isValidLogin(value domain.LoginRequest) bool {
+func isValidLogin(value model.LoginRequest) bool {
 	return !(value.Username == os.Getenv("ADMIN_ID") && value.Password == os.Getenv("ADMIN_PW"))
 }
 

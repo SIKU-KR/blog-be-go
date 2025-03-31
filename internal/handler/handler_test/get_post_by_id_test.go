@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"bumsiku/domain"
 	"bumsiku/internal/handler"
+	"bumsiku/internal/model"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -28,7 +28,7 @@ func TestGetPostById_Success(t *testing.T) {
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var post domain.Post
+	var post model.Post
 	err := json.Unmarshal(w.Body.Bytes(), &post)
 	assert.NoError(t, err)
 	assert.Equal(t, "post1", post.PostID)

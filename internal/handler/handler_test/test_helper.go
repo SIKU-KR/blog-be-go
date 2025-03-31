@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"bumsiku/domain"
+	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
 	"bytes"
 	"context"
@@ -26,7 +26,7 @@ func init() {
 
 // MockPostRepository는 테스트에 사용되는 저장소 모의 객체입니다.
 type mockPostRepository struct {
-	posts     []domain.Post
+	posts     []model.Post
 	nextToken *string
 	err       error
 }
@@ -41,7 +41,7 @@ func (m *mockPostRepository) GetPosts(ctx context.Context, input *repository.Get
 	}, nil
 }
 
-func (m *mockPostRepository) GetPostByID(ctx context.Context, postID string) (*domain.Post, error) {
+func (m *mockPostRepository) GetPostByID(ctx context.Context, postID string) (*model.Post, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
@@ -56,9 +56,9 @@ func (m *mockPostRepository) GetPostByID(ctx context.Context, postID string) (*d
 }
 
 // CreateTestPosts는 테스트용 게시글 데이터를 생성합니다.
-func CreateTestPosts() []domain.Post {
+func CreateTestPosts() []model.Post {
 	now := time.Now()
-	return []domain.Post{
+	return []model.Post{
 		{
 			PostID:    "post1",
 			Title:     "첫 번째 게시글",
