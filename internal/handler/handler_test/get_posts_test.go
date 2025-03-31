@@ -32,6 +32,20 @@ func (m *mockPostRepository) GetPosts(ctx context.Context, input *repository.Get
 	}, nil
 }
 
+func (m *mockPostRepository) GetPostById(ctx context.Context, postId string) (*domain.Post, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	for _, post := range m.posts {
+		if post.PostID == postId {
+			return &post, nil
+		}
+	}
+
+	return nil, nil
+}
+
 // 테스트용 데이터 생성
 func createTestPosts() []domain.Post {
 	now := time.Now()

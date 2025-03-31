@@ -20,6 +20,7 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	// Public Endpoints
 	router.POST("/login", handler.PostLogin)
 	router.GET("/posts", handler.GetPosts(container.PostRepository))
+	router.GET("/posts/:id", handler.GetPostById(container.PostRepository))
 
 	// Secured Endpoints
 	admin := router.Group("/admin")

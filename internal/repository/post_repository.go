@@ -16,6 +16,7 @@ const PAGE_SIZE = 10
 
 type PostRepositoryInterface interface {
 	GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error)
+	GetPostById(ctx context.Context, postId string) (*domain.Post, error)
 }
 
 type PostRepository struct {
@@ -124,4 +125,28 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 		Posts:     posts,
 		NextToken: nextToken,
 	}, nil
+}
+
+func (r *PostRepository) GetPostById(ctx context.Context, postId string) (*domain.Post, error) {
+	result, err := r.client.GetItem(ctx, &dynamodb.GetItemInput{
+		TableName: aws.String(POST_TABLE_NAME),
+		Key: map[string]types.AttributeValue{
+			"postId": &types.AttributeValueMemberS{Value: postId},
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	if result.Item == nil {
+		return nil, nil
+	}
+
+	post := &domain.Post{}
+	err = attributevalue.UnmarshalMap(result.Item, post)
+	if err != nil {
+		return nil, err
+	}
+
+	return post, nil
 }
