@@ -14,6 +14,10 @@ import (
 const POST_TABLE_NAME = "posts"
 const PAGE_SIZE = 10
 
+type PostRepositoryInterface interface {
+	GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error)
+}
+
 type PostRepository struct {
 	client *dynamodb.Client
 }

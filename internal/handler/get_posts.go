@@ -13,7 +13,7 @@ type GetPostsResponse struct {
 	NextToken *string    `json:"nextToken,omitempty"`
 }
 
-func GetPosts(postRepo *repository.PostRepository) gin.HandlerFunc {
+func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 쿼리 파라미터 파싱
 		category := c.Query("category")
