@@ -1,11 +1,10 @@
-package handler_test
+package handler
 
 import (
 	"bumsiku/domain"
 	"bumsiku/internal/handler"
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -17,16 +16,12 @@ import (
 // [THEN] 상태코드 200과 해당 게시글 반환 확인
 func TestGetPostById_Success(t *testing.T) {
 	// Given
-	gin.SetMode(gin.TestMode)
-	mockPosts := createTestPosts()
+	mockPosts := CreateTestPosts()
 	mockRepo := &mockPostRepository{posts: mockPosts}
 
 	// When
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
+	c, w := SetupTestContext("GET", "/posts/post1", "")
 	c.Params = []gin.Param{{Key: "postId", Value: "post1"}}
-	req := httptest.NewRequest("GET", "/posts/post1", nil)
-	c.Request = req
 
 	handler.GetPostById(mockRepo)(c)
 
@@ -45,26 +40,17 @@ func TestGetPostById_Success(t *testing.T) {
 // [THEN] 상태코드 404와 적절한 에러 메시지 반환 확인
 func TestGetPostById_NotFound(t *testing.T) {
 	// Given
-	gin.SetMode(gin.TestMode)
-	mockPosts := createTestPosts()
+	mockPosts := CreateTestPosts()
 	mockRepo := &mockPostRepository{posts: mockPosts}
 
 	// When
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
+	c, w := SetupTestContext("GET", "/posts/nonexistent", "")
 	c.Params = []gin.Param{{Key: "postId", Value: "nonexistent"}}
-	req := httptest.NewRequest("GET", "/posts/nonexistent", nil)
-	c.Request = req
 
 	handler.GetPostById(mockRepo)(c)
 
 	// Then
-	assert.Equal(t, http.StatusNotFound, w.Code)
-
-	var response map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "게시글을 찾을 수 없습니다", response["error"])
+	AssertResponseJSON(t, w, http.StatusNotFound, "error", "게시글을 찾을 수 없습니다")
 }
 
 // [GIVEN] postId 파라미터가 비어있는 경우
@@ -72,25 +58,16 @@ func TestGetPostById_NotFound(t *testing.T) {
 // [THEN] 상태코드 400과 적절한 에러 메시지 반환 확인
 func TestGetPostById_MissingId(t *testing.T) {
 	// Given
-	gin.SetMode(gin.TestMode)
 	mockRepo := &mockPostRepository{}
 
 	// When
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
+	c, w := SetupTestContext("GET", "/posts/", "")
 	c.Params = []gin.Param{{Key: "postId", Value: ""}}
-	req := httptest.NewRequest("GET", "/posts/", nil)
-	c.Request = req
 
 	handler.GetPostById(mockRepo)(c)
 
 	// Then
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-
-	var response map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "게시글 ID가 필요합니다", response["error"])
+	AssertResponseJSON(t, w, http.StatusBadRequest, "error", "게시글 ID가 필요합니다")
 }
 
 // [GIVEN] Repository에서 에러가 발생하는 경우
@@ -98,23 +75,14 @@ func TestGetPostById_MissingId(t *testing.T) {
 // [THEN] 상태코드 500과 에러 메시지 반환 확인
 func TestGetPostById_Error(t *testing.T) {
 	// Given
-	gin.SetMode(gin.TestMode)
 	mockRepo := &mockPostRepository{err: assert.AnError}
 
 	// When
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
+	c, w := SetupTestContext("GET", "/posts/post1", "")
 	c.Params = []gin.Param{{Key: "postId", Value: "post1"}}
-	req := httptest.NewRequest("GET", "/posts/post1", nil)
-	c.Request = req
 
 	handler.GetPostById(mockRepo)(c)
 
 	// Then
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-
-	var response map[string]interface{}
-	err := json.Unmarshal(w.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "게시글 조회에 실패했습니다", response["error"])
+	AssertResponseJSON(t, w, http.StatusInternalServerError, "error", "게시글 조회에 실패했습니다")
 }
