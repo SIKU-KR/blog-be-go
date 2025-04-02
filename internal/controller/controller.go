@@ -22,6 +22,7 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	router.GET("/posts", handler.GetPosts(container.PostRepository))
 	router.GET("/posts/:id", handler.GetPostByID(container.PostRepository))
 	router.GET("/comments/:id", handler.GetCommentsByPostID(container.CommentRepository))
+	router.POST("/comments/:postId", handler.CreateComment(container.CommentRepository, container.PostRepository))
 
 	// Secured Endpoints
 	admin := router.Group("/admin")

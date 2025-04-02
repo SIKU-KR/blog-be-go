@@ -9,5 +9,4 @@ type Comment struct {
 	Nickname  string    `json:"nickname" dynamodbav:"nickname"`
 	Content   string    `json:"content" dynamodbav:"content"`
 	CreatedAt time.Time `json:"createdAt" dynamodbav:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt" dynamodbav:"updatedAt"`
 }

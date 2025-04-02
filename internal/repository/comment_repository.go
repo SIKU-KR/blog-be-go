@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"bumsiku/internal/model"
 
@@ -9,12 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/google/uuid"
 )
 
 const CommentTableName = "blog_comments"
 
 type CommentRepositoryInterface interface {
 	GetComments(ctx context.Context, input *GetCommentsInput) ([]model.Comment, error)
+	CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error)
 }
 
 type CommentRepository struct {
@@ -96,4 +99,28 @@ func (r *CommentRepository) getAllComments(ctx context.Context) ([]model.Comment
 	}
 
 	return comments, nil
+}
+
+// CreateComment는 댓글을 생성합니다
+func (r *CommentRepository) CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error) {
+	comment.CommentID = uuid.New().String()
+	comment.CreatedAt = time.Now()
+
+	// DynamoDB 아이템으로 변환
+	item, err := attributevalue.MarshalMap(comment)
+	if err != nil {
+		return nil, err
+	}
+
+	// DynamoDB에 삽입
+	_, err = r.client.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName: aws.String(CommentTableName),
+		Item:      item,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return comment, nil
 }

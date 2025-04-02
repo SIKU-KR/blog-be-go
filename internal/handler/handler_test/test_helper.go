@@ -88,7 +88,6 @@ func CreateTestComments() []model.Comment {
 			Content:   "첫 번째 댓글",
 			Nickname:  "사용자1",
 			CreatedAt: now,
-			UpdatedAt: now,
 		},
 		{
 			CommentID: "comment2",
@@ -96,7 +95,6 @@ func CreateTestComments() []model.Comment {
 			Content:   "두 번째 댓글",
 			Nickname:  "사용자2",
 			CreatedAt: now.Add(time.Hour),
-			UpdatedAt: now.Add(time.Hour),
 		},
 		{
 			CommentID: "comment3",
@@ -104,7 +102,6 @@ func CreateTestComments() []model.Comment {
 			Content:   "다른 게시글의 댓글",
 			Nickname:  "사용자3",
 			CreatedAt: now.Add(2 * time.Hour),
-			UpdatedAt: now.Add(2 * time.Hour),
 		},
 	}
 }
@@ -166,6 +163,8 @@ func AssertJSONResponse(t *testing.T, w *httptest.ResponseRecorder, expectedStat
 type CommentRepositoryMock struct {
 	comments []model.Comment
 	err      error
+	// 생성된 댓글을 추적하기 위한 필드
+	createdComment *model.Comment
 }
 
 func (m *CommentRepositoryMock) GetComments(ctx context.Context, input *repository.GetCommentsInput) ([]model.Comment, error) {
@@ -185,4 +184,21 @@ func (m *CommentRepositoryMock) GetComments(ctx context.Context, input *reposito
 	}
 
 	return m.comments, nil
+}
+
+func (m *CommentRepositoryMock) CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	// commentId 생성
+	comment.CommentID = "new-comment-id"
+
+	// 현재 시간 설정
+	comment.CreatedAt = time.Now()
+
+	// 생성된 댓글 저장 (테스트에서 검증 가능)
+	m.createdComment = comment
+
+	return comment, nil
 }
