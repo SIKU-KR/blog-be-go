@@ -62,6 +62,28 @@ func (m *mockPostRepository) CreatePost(ctx context.Context, post *model.Post) e
 	return nil
 }
 
+func (m *mockPostRepository) UpdatePost(ctx context.Context, post *model.Post) error {
+	if m.err != nil {
+		return m.err
+	}
+
+	// 게시글 존재 여부 확인
+	for i, p := range m.posts {
+		if p.PostID == post.PostID {
+			// 기존 값 유지하면서 업데이트
+			m.posts[i].Title = post.Title
+			m.posts[i].Content = post.Content
+			m.posts[i].Summary = post.Summary
+			m.posts[i].Category = post.Category
+			m.posts[i].UpdatedAt = post.UpdatedAt
+			return nil
+		}
+	}
+
+	// 게시글이 없는 경우
+	return &repository.PostNotFoundError{PostID: post.PostID}
+}
+
 // CreateTestPosts는 테스트용 게시글 데이터를 생성합니다.
 func CreateTestPosts() []model.Post {
 	now := time.Now()

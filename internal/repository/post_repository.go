@@ -19,6 +19,7 @@ type PostRepositoryInterface interface {
 	GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error)
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
 	CreatePost(ctx context.Context, post *model.Post) error
+	UpdatePost(ctx context.Context, post *model.Post) error
 }
 
 type PostRepository struct {
@@ -81,6 +82,51 @@ func (r *PostRepository) CreatePost(ctx context.Context, post *model.Post) error
 	})
 
 	return err
+}
+
+func (r *PostRepository) UpdatePost(ctx context.Context, post *model.Post) error {
+	// 먼저 게시글이 존재하는지 확인
+	existingPost, err := r.GetPostByID(ctx, post.PostID)
+	if err != nil {
+		return err
+	}
+	if existingPost == nil {
+		return &PostNotFoundError{PostID: post.PostID}
+	}
+
+	// 업데이트 표현식 생성
+	update := expression.Set(expression.Name("title"), expression.Value(post.Title)).
+		Set(expression.Name("content"), expression.Value(post.Content)).
+		Set(expression.Name("summary"), expression.Value(post.Summary)).
+		Set(expression.Name("category"), expression.Value(post.Category)).
+		Set(expression.Name("updatedAt"), expression.Value(post.UpdatedAt))
+
+	expr, err := expression.NewBuilder().WithUpdate(update).Build()
+	if err != nil {
+		return err
+	}
+
+	_, err = r.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName: aws.String(PostTableName),
+		Key: map[string]types.AttributeValue{
+			"postId": &types.AttributeValueMemberS{Value: post.PostID},
+		},
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		UpdateExpression:          expr.Update(),
+		ReturnValues:              types.ReturnValueUpdatedNew,
+	})
+
+	return err
+}
+
+// PostNotFoundError는 게시글을 찾을 수 없을 때 발생하는 오류입니다.
+type PostNotFoundError struct {
+	PostID string
+}
+
+func (e *PostNotFoundError) Error() string {
+	return "게시글을 찾을 수 없음: " + e.PostID
 }
 
 func (r *PostRepository) buildPostsQueryInput(input *GetPostsInput) (*dynamodb.QueryInput, error) {

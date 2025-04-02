@@ -28,6 +28,7 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	admin := router.Group("/admin")
 	admin.Use(middleware.SessionAuthMiddleware())
 	admin.POST("/posts", handler.CreatePost(container.PostRepository))
+	admin.PUT("/posts/:id", handler.UpdatePost(container.PostRepository))
 
 	return router
 }
