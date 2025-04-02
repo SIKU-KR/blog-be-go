@@ -67,4 +67,4 @@ func CreatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 			"post": post,
 		})
 	}
-} 
+}

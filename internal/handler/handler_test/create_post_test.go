@@ -109,4 +109,4 @@ func TestCreatePost_SaveError(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Contains(t, response["error"].(string), "게시글 등록에 실패했습니다")
-} 
+}
