@@ -45,8 +45,8 @@ func (m *PostRepositoryForUpdatePostMock) GetPosts(ctx context.Context, input *r
 		return nil, m.err
 	}
 	return &repository.GetPostsOutput{
-		Posts:     m.posts,
-		NextToken: nil,
+		Posts:      m.posts,
+		TotalCount: int64(len(m.posts)),
 	}, nil
 }
 

@@ -33,27 +33,111 @@ func NewPostRepository(client *dynamodb.Client) *PostRepository {
 
 type GetPostsInput struct {
 	Category  *string
-	NextToken *string
-	PageSize  *int32
+	Page      int32
+	PageSize  int32
 }
 
 type GetPostsOutput struct {
-	Posts     []model.Post
-	NextToken *string
+	Posts      []model.Post
+	TotalCount int64
 }
 
 func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error) {
-	queryInput, err := r.buildPostsQueryInput(input)
+	// 전체 게시글 수를 먼저 조회
+	var expr expression.Expression
+	var err error
+	
+	if input.Category != nil && *input.Category != "" {
+		expr, err = buildPostListExpression(*input.Category)
+	} else {
+		expr, err = buildPostListExpression("")
+	}
 	if err != nil {
 		return nil, err
 	}
 
+	countResult, err := r.client.Query(ctx, &dynamodb.QueryInput{
+		TableName:                 aws.String(PostTableName),
+		KeyConditionExpression:    expr.KeyCondition(),
+		Select:                    types.SelectCount,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		IndexName:                 getIndexName(input.Category),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// 페이지네이션 계산
+	offset := (input.Page - 1) * input.PageSize
+	
+	// 게시글 조회
+	queryInput := &dynamodb.QueryInput{
+		TableName:                 aws.String(PostTableName),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		Limit:                     aws.Int32(input.PageSize),
+		ScanIndexForward:          aws.Bool(false), // 최신순 정렬
+		IndexName:                 getIndexName(input.Category),
+	}
+
+	if offset > 0 {
+		// 이전 페이지의 마지막 항목까지 스캔
+		var lastEvaluatedKey map[string]types.AttributeValue
+		for i := int32(0); i < offset/input.PageSize; i++ {
+			tempResult, err := r.client.Query(ctx, queryInput)
+			if err != nil {
+				return nil, err
+			}
+			if tempResult.LastEvaluatedKey == nil {
+				break
+			}
+			lastEvaluatedKey = tempResult.LastEvaluatedKey
+		}
+		if lastEvaluatedKey != nil {
+			queryInput.ExclusiveStartKey = lastEvaluatedKey
+		}
+	}
+
+	// 실제 결과 조회
 	result, err := r.client.Query(ctx, queryInput)
 	if err != nil {
 		return nil, err
 	}
 
-	return r.processPostsQueryResult(result)
+	// 결과 변환
+	posts := make([]model.Post, 0)
+	err = attributevalue.UnmarshalListOfMaps(result.Items, &posts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GetPostsOutput{
+		Posts:      posts,
+		TotalCount: int64(countResult.Count),
+	}, nil
+}
+
+func buildPostListExpression(category string) (expression.Expression, error) {
+	var keyCondition expression.KeyConditionBuilder
+
+	if category == "" {
+		keyCondition = expression.Key("postId").BeginsWith("")
+	} else {
+		keyCondition = expression.Key("category").Equal(expression.Value(category))
+	}
+
+	return expression.NewBuilder().
+		WithKeyCondition(keyCondition).
+		Build()
+}
+
+func getIndexName(category *string) *string {
+	if category != nil && *category != "" {
+		return aws.String("category-index")
+	}
+	return nil
 }
 
 func (r *PostRepository) GetPostByID(ctx context.Context, postID string) (*model.Post, error) {
@@ -128,117 +212,6 @@ type PostNotFoundError struct {
 
 func (e *PostNotFoundError) Error() string {
 	return "게시글을 찾을 수 없음: " + e.PostID
-}
-
-func (r *PostRepository) buildPostsQueryInput(input *GetPostsInput) (*dynamodb.QueryInput, error) {
-	expr, err := buildPostListExpression("")
-	if err != nil {
-		return nil, err
-	}
-
-	limit := resolvePageSize(input.PageSize)
-
-	queryInput := &dynamodb.QueryInput{
-		TableName:                 aws.String(PostTableName),
-		KeyConditionExpression:    expr.KeyCondition(),
-		ExpressionAttributeNames:  expr.Names(),
-		ExpressionAttributeValues: expr.Values(),
-		ProjectionExpression:      expr.Projection(),
-		Limit:                     aws.Int32(limit),
-		ScanIndexForward:          aws.Bool(false), // 최신순 정렬
-	}
-
-	queryInput = r.applyFilterByCategory(queryInput, input.Category, expr)
-
-	if input.NextToken != nil {
-		queryInput.ExclusiveStartKey = map[string]types.AttributeValue{
-			"postId": &types.AttributeValueMemberS{Value: *input.NextToken},
-		}
-	}
-
-	return queryInput, nil
-}
-
-func (r *PostRepository) applyFilterByCategory(queryInput *dynamodb.QueryInput, category *string, expr expression.Expression) *dynamodb.QueryInput {
-	if category == nil || *category == "" {
-		return queryInput
-	}
-
-	newExpr, err := buildPostListExpression(*category)
-	if err != nil {
-		return queryInput // 오류 발생 시 원래 쿼리 반환
-	}
-
-	queryInput.IndexName = aws.String("category-index")
-	queryInput.KeyConditionExpression = newExpr.KeyCondition()
-	queryInput.ExpressionAttributeNames = newExpr.Names()
-	queryInput.ExpressionAttributeValues = newExpr.Values()
-	queryInput.ProjectionExpression = newExpr.Projection()
-
-	return queryInput
-}
-
-func (r *PostRepository) processPostsQueryResult(result *dynamodb.QueryOutput) (*GetPostsOutput, error) {
-	// 결과 변환
-	posts := make([]model.Post, 0)
-	err := attributevalue.UnmarshalListOfMaps(result.Items, &posts)
-	if err != nil {
-		return nil, err
-	}
-
-	// 다음 페이지 토큰 추출
-	nextToken := extractNextToken(result.LastEvaluatedKey)
-
-	return &GetPostsOutput{
-		Posts:     posts,
-		NextToken: nextToken,
-	}, nil
-}
-
-func extractNextToken(lastEvaluatedKey map[string]types.AttributeValue) *string {
-	if lastEvaluatedKey == nil {
-		return nil
-	}
-
-	if postId, ok := lastEvaluatedKey["postId"].(*types.AttributeValueMemberS); ok {
-		return aws.String(postId.Value)
-	}
-
-	return nil
-}
-
-func buildPostListExpression(category string) (expression.Expression, error) {
-	var keyCondition expression.KeyConditionBuilder
-
-	if category == "" {
-		keyCondition = expression.Key("postId").BeginsWith("")
-	} else {
-		keyCondition = expression.Key("category").Equal(expression.Value(category))
-	}
-
-	projection := buildPostListProjection()
-
-	return expression.NewBuilder().
-		WithKeyCondition(keyCondition).
-		WithProjection(projection).
-		Build()
-}
-
-func buildPostListProjection() expression.ProjectionBuilder {
-	return expression.NamesList(
-		expression.Name("postId"),
-		expression.Name("title"),
-		expression.Name("createdAt"),
-		expression.Name("updatedAt"),
-		expression.Name("summary"),
-	)
-}
-
-func resolvePageSize(pageSize *int32) int32 {
-	if pageSize == nil {
-		return PageSize
-	}
-	return *pageSize
 }
 
 func unmarshallPostItem(item map[string]types.AttributeValue) (*model.Post, error) {

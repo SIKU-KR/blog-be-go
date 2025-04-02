@@ -35,9 +35,39 @@ func (m *mockPostRepository) GetPosts(ctx context.Context, input *repository.Get
 	if m.err != nil {
 		return nil, m.err
 	}
+	
+	// 전체 게시글 수
+	totalCount := int64(len(m.posts))
+	
+	// 카테고리 필터링
+	filteredPosts := m.posts
+	if input.Category != nil && *input.Category != "" {
+		filtered := make([]model.Post, 0)
+		for _, post := range m.posts {
+			if post.Category == *input.Category {
+				filtered = append(filtered, post)
+			}
+		}
+		filteredPosts = filtered
+		totalCount = int64(len(filteredPosts))
+	}
+
+	// 페이지네이션 적용
+	start := (input.Page - 1) * input.PageSize
+	end := start + input.PageSize
+	if start >= int32(len(filteredPosts)) {
+		return &repository.GetPostsOutput{
+			Posts:      []model.Post{},
+			TotalCount: totalCount,
+		}, nil
+	}
+	if end > int32(len(filteredPosts)) {
+		end = int32(len(filteredPosts))
+	}
+
 	return &repository.GetPostsOutput{
-		Posts:     m.posts,
-		NextToken: m.nextToken,
+		Posts:      filteredPosts[start:end],
+		TotalCount: totalCount,
 	}, nil
 }
 

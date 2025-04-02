@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bumsiku/internal/handler"
-	"bumsiku/internal/model"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -29,13 +28,15 @@ func TestGetPosts_Success(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	
-	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
 	
 	data := response["data"].(map[string]interface{})
 	posts := data["posts"].([]interface{})
 	assert.Equal(t, 2, len(posts))
+	assert.Equal(t, float64(2), data["totalCount"])
+	assert.Equal(t, float64(1), data["currentPage"])
+	assert.Equal(t, float64(1), data["totalPages"])
 }
 
 // [GIVEN] 카테고리 필터가 적용된 경우
@@ -43,7 +44,7 @@ func TestGetPosts_Success(t *testing.T) {
 // [THEN] 상태코드 200과 필터링된 게시글 목록 반환 확인
 func TestGetPosts_WithCategory(t *testing.T) {
 	// Given
-	mockPosts := []model.Post{CreateTestPosts()[0]} // tech 카테고리만
+	mockPosts := CreateTestPosts()
 	mockRepo := &mockPostRepository{posts: mockPosts}
 
 	// When
@@ -57,28 +58,27 @@ func TestGetPosts_WithCategory(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	
-	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
 	
 	data := response["data"].(map[string]interface{})
 	posts := data["posts"].([]interface{})
 	assert.Equal(t, 1, len(posts))
+	assert.Equal(t, float64(1), data["totalCount"])
+	assert.Equal(t, float64(1), data["currentPage"])
+	assert.Equal(t, float64(1), data["totalPages"])
 }
 
 // [GIVEN] 페이지네이션이 적용된 경우
 // [WHEN] GetPosts 핸들러를 호출
-// [THEN] 상태코드 200과 nextToken이 포함된 응답 반환 확인
+// [THEN] 상태코드 200과 페이지네이션이 적용된 응답 반환 확인
 func TestGetPosts_WithPagination(t *testing.T) {
 	// Given
-	nextToken := "next_page_token"
-	mockRepo := &mockPostRepository{
-		posts:     CreateTestPosts()[:1],
-		nextToken: &nextToken,
-	}
+	mockPosts := CreateTestPosts()
+	mockRepo := &mockPostRepository{posts: mockPosts}
 
 	// When
-	c, w := SetupTestContext("GET", "/posts?pageSize=1", "")
+	c, w := SetupTestContext("GET", "/posts?page=1&pageSize=1", "")
 	handler.GetPosts(mockRepo)(c)
 
 	// Then
@@ -88,12 +88,15 @@ func TestGetPosts_WithPagination(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	
-	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
 	
 	data := response["data"].(map[string]interface{})
-	assert.Equal(t, nextToken, data["nextToken"])
+	posts := data["posts"].([]interface{})
+	assert.Equal(t, 1, len(posts))
+	assert.Equal(t, float64(2), data["totalCount"])
+	assert.Equal(t, float64(1), data["currentPage"])
+	assert.Equal(t, float64(2), data["totalPages"])
 }
 
 // [GIVEN] Repository에서 에러가 발생하는 경우
