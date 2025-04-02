@@ -108,11 +108,11 @@ func TestDeletePost_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	data := response["data"].(map[string]interface{})
 	assert.Equal(t, "게시글이 성공적으로 삭제되었습니다", data["message"])
 	assert.Equal(t, "post1", mockPostRepo.deletedPostID)
@@ -156,10 +156,10 @@ func TestDeletePost_PostNotFound(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "NOT_FOUND", errorData["code"])
 	assert.Contains(t, errorData["message"], "게시글을 찾을 수 없음")
@@ -203,10 +203,10 @@ func TestDeletePost_DeleteError(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
 	assert.Contains(t, errorData["message"], "게시글 삭제에 실패했습니다")
@@ -251,10 +251,10 @@ func TestDeletePost_CommentDeleteError(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	data := response["data"].(map[string]interface{})
 	assert.Equal(t, "게시글이 성공적으로 삭제되었습니다", data["message"])
 	assert.Equal(t, "post1", mockPostRepo.deletedPostID)

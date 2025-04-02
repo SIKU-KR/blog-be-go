@@ -32,9 +32,9 @@ func NewPostRepository(client *dynamodb.Client) *PostRepository {
 }
 
 type GetPostsInput struct {
-	Category  *string
-	Page      int32
-	PageSize  int32
+	Category *string
+	Page     int32
+	PageSize int32
 }
 
 type GetPostsOutput struct {
@@ -46,7 +46,7 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 	// 전체 게시글 수를 먼저 조회
 	var expr expression.Expression
 	var err error
-	
+
 	if input.Category != nil && *input.Category != "" {
 		expr, err = buildPostListExpression(*input.Category)
 	} else {
@@ -70,7 +70,7 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 
 	// 페이지네이션 계산
 	offset := (input.Page - 1) * input.PageSize
-	
+
 	// 게시글 조회
 	queryInput := &dynamodb.QueryInput{
 		TableName:                 aws.String(PostTableName),

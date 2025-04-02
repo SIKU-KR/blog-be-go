@@ -38,7 +38,7 @@ func TestCreateComment_Success(t *testing.T) {
 	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	comment := response["data"].(map[string]interface{})
 	assert.Equal(t, "post1", comment["postId"])
 	assert.Equal(t, "테스터", comment["nickname"])
@@ -65,14 +65,14 @@ func TestCreateComment_MissingPostId(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "BAD_REQUEST", errorData["code"])
 	assert.Equal(t, "게시글 ID가 필요합니다", errorData["message"])
@@ -98,14 +98,14 @@ func TestCreateComment_PostNotFound(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusNotFound, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "NOT_FOUND", errorData["code"])
 	assert.Equal(t, "존재하지 않는 게시글입니다", errorData["message"])
@@ -135,10 +135,10 @@ func TestCreateComment_InvalidRequest(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "BAD_REQUEST", errorData["code"])
 	assert.Contains(t, errorData["message"], "요청 형식이 올바르지 않습니다")
@@ -168,10 +168,10 @@ func TestCreateComment_SaveError(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
 	assert.Contains(t, errorData["message"], "댓글 등록에 실패했습니다")

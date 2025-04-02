@@ -179,11 +179,11 @@ func TestUpdatePost_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	post := response["data"].(map[string]interface{})
 	assert.Equal(t, "post1", post["postId"])
 	assert.Equal(t, "수정된 게시글", post["title"])
@@ -233,10 +233,10 @@ func TestUpdatePost_PostNotFound(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "NOT_FOUND", errorData["code"])
 	assert.Contains(t, errorData["message"], "게시글을 찾을 수 없음")
@@ -281,10 +281,10 @@ func TestUpdatePost_InvalidRequest(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "BAD_REQUEST", errorData["code"])
 	assert.Contains(t, errorData["message"], "요청 형식이 올바르지 않습니다")
@@ -332,10 +332,10 @@ func TestUpdatePost_UpdateError(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
 	assert.Contains(t, errorData["message"], "게시글 수정에 실패했습니다")

@@ -27,10 +27,10 @@ func TestGetPosts_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	data := response["data"].(map[string]interface{})
 	posts := data["posts"].([]interface{})
 	assert.Equal(t, 2, len(posts))
@@ -57,10 +57,10 @@ func TestGetPosts_WithCategory(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	data := response["data"].(map[string]interface{})
 	posts := data["posts"].([]interface{})
 	assert.Equal(t, 1, len(posts))
@@ -87,10 +87,10 @@ func TestGetPosts_WithPagination(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	data := response["data"].(map[string]interface{})
 	posts := data["posts"].([]interface{})
 	assert.Equal(t, 1, len(posts))
@@ -112,14 +112,14 @@ func TestGetPosts_Error(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
 	assert.Equal(t, "게시글 목록 조회에 실패했습니다", errorData["message"])

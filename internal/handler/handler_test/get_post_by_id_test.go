@@ -30,11 +30,11 @@ func TestGetPostById_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	post := response["data"].(map[string]interface{})
 	assert.Equal(t, "post1", post["postId"])
 	assert.Equal(t, "첫 번째 게시글", post["title"])
@@ -56,14 +56,14 @@ func TestGetPostById_NotFound(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusNotFound, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "NOT_FOUND", errorData["code"])
 	assert.Equal(t, "게시글을 찾을 수 없습니다", errorData["message"])
@@ -84,14 +84,14 @@ func TestGetPostById_MissingId(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "BAD_REQUEST", errorData["code"])
 	assert.Equal(t, "게시글 ID가 필요합니다", errorData["message"])
@@ -112,14 +112,14 @@ func TestGetPostById_Error(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
 	assert.Equal(t, "게시글 조회에 실패했습니다", errorData["message"])

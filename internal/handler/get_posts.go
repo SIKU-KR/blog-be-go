@@ -10,9 +10,9 @@ import (
 
 type GetPostsResponse struct {
 	Posts       interface{} `json:"posts"`
-	TotalCount  int64      `json:"totalCount"`
-	CurrentPage int32      `json:"currentPage"`
-	TotalPages  int32      `json:"totalPages"`
+	TotalCount  int64       `json:"totalCount"`
+	CurrentPage int32       `json:"currentPage"`
+	TotalPages  int32       `json:"totalPages"`
 }
 
 func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
@@ -44,9 +44,9 @@ func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 
 		// 게시글 목록 조회
 		result, err := postRepo.GetPosts(c.Request.Context(), &repository.GetPostsInput{
-			Category:  categoryPtr,
-			Page:      page,
-			PageSize:  pageSize,
+			Category: categoryPtr,
+			Page:     page,
+			PageSize: pageSize,
 		})
 
 		if err != nil {

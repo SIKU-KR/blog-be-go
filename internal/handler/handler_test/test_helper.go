@@ -35,10 +35,10 @@ func (m *mockPostRepository) GetPosts(ctx context.Context, input *repository.Get
 	if m.err != nil {
 		return nil, m.err
 	}
-	
+
 	// 전체 게시글 수
 	totalCount := int64(len(m.posts))
-	
+
 	// 카테고리 필터링
 	filteredPosts := m.posts
 	if input.Category != nil && *input.Category != "" {

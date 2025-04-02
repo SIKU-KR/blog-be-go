@@ -17,17 +17,17 @@ func TestPostLogin_Success(t *testing.T) {
 	body := `{"username": "admin", "password": "password"}`
 	c, w := SetupTestContextWithSession("POST", "/login", body)
 	handler.PostLogin(c)
-	
+
 	assert.Equal(t, http.StatusOK, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	data := response["data"].(map[string]interface{})
 	assert.Equal(t, "로그인에 성공했습니다", data["message"])
 }
@@ -40,16 +40,16 @@ func TestPostLogin_InvalidCredentials(t *testing.T) {
 	body := `{"username": "wrong", "password": "creds"}`
 	c, w := SetupTestContextWithSession("POST", "/login", body)
 	handler.PostLogin(c)
-	
+
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "UNAUTHORIZED", errorData["code"])
 	assert.Equal(t, "로그인에 실패했습니다", errorData["message"])
@@ -63,16 +63,16 @@ func TestPostLogin_BadRequest(t *testing.T) {
 	body := `{"username": "admin"}`
 	c, w := SetupTestContextWithSession("POST", "/login", body)
 	handler.PostLogin(c)
-	
+
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "BAD_REQUEST", errorData["code"])
 	assert.Equal(t, "잘못된 요청 형식입니다", errorData["message"])

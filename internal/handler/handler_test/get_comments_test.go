@@ -28,11 +28,11 @@ func TestGetComments_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	data := response["data"].(map[string]interface{})
 	comments := data["comments"].([]interface{})
 	assert.Equal(t, 3, len(comments))
@@ -56,11 +56,11 @@ func TestGetComments_WithPostIdFilter(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	data := response["data"].(map[string]interface{})
 	comments := data["comments"].([]interface{})
 	assert.Equal(t, 2, len(comments)) // post1에 연결된 댓글은 2개
@@ -79,14 +79,14 @@ func TestGetComments_Error(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
 	assert.Equal(t, assert.AnError.Error(), errorData["message"])
@@ -112,11 +112,11 @@ func TestGetCommentsByPostID_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	// 새로운 응답 구조체 확인
 	assert.True(t, response["success"].(bool))
 	assert.NotNil(t, response["data"])
-	
+
 	data := response["data"].(map[string]interface{})
 	comments := data["comments"].([]interface{})
 	assert.Equal(t, 2, len(comments)) // post1에 연결된 댓글은 2개
@@ -137,14 +137,14 @@ func TestGetCommentsByPostID_MissingId(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "BAD_REQUEST", errorData["code"])
 	assert.Equal(t, "게시글 ID가 필요합니다", errorData["message"])
@@ -165,14 +165,14 @@ func TestGetCommentsByPostID_Error(t *testing.T) {
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	
+
 	assert.False(t, response["success"].(bool))
 	assert.NotNil(t, response["error"])
-	
+
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
 	assert.Equal(t, assert.AnError.Error(), errorData["message"])

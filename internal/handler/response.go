@@ -8,15 +8,15 @@ import (
 
 // APIResponse는 모든 API 응답에 사용되는 공통 구조체입니다.
 type APIResponse struct {
-	Success bool        `json:"success"`      // 요청 성공 여부
-	Data    interface{} `json:"data,omitempty"` // 실제 데이터 (성공 시)
+	Success bool        `json:"success"`         // 요청 성공 여부
+	Data    interface{} `json:"data,omitempty"`  // 실제 데이터 (성공 시)
 	Error   *APIError   `json:"error,omitempty"` // 오류 정보 (실패 시)
 }
 
 // APIError는 API 오류 정보를 담는 구조체입니다.
 type APIError struct {
-	Code    string `json:"code"`              // 오류 코드
-	Message string `json:"message"`           // 오류 메시지
+	Code    string `json:"code"`    // 오류 코드
+	Message string `json:"message"` // 오류 메시지
 }
 
 // SendSuccess는 성공 응답을 반환하는 헬퍼 함수입니다.
@@ -61,4 +61,4 @@ func SendUnauthorizedError(c *gin.Context, message string) {
 // SendForbiddenError는 권한 없음(403) 오류를 반환하는 헬퍼 함수입니다.
 func SendForbiddenError(c *gin.Context, message string) {
 	SendError(c, http.StatusForbidden, "FORBIDDEN", message)
-} 
+}
