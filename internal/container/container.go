@@ -7,7 +7,8 @@ import (
 )
 
 type Container struct {
-	PostRepository *repository.PostRepository
+	PostRepository    *repository.PostRepository
+	CommentRepository *repository.CommentRepository
 }
 
 func NewContainer(ctx context.Context) (*Container, error) {
@@ -17,8 +18,10 @@ func NewContainer(ctx context.Context) (*Container, error) {
 	}
 
 	postRepo := repository.NewPostRepository(ddbClient)
+	commentRepo := repository.NewCommentRepository(ddbClient)
 
 	return &Container{
-		PostRepository: postRepo,
+		PostRepository:    postRepo,
+		CommentRepository: commentRepo,
 	}, nil
 }
