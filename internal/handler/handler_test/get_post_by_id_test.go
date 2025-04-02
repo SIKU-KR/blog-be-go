@@ -2,7 +2,6 @@ package handler
 
 import (
 	"bumsiku/internal/handler"
-	"bumsiku/internal/model"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -28,11 +27,17 @@ func TestGetPostById_Success(t *testing.T) {
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var post model.Post
-	err := json.Unmarshal(w.Body.Bytes(), &post)
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, "post1", post.PostID)
-	assert.Equal(t, "첫 번째 게시글", post.Title)
+	
+	// 새로운 응답 구조체 확인
+	assert.True(t, response["success"].(bool))
+	assert.NotNil(t, response["data"])
+	
+	post := response["data"].(map[string]interface{})
+	assert.Equal(t, "post1", post["postId"])
+	assert.Equal(t, "첫 번째 게시글", post["title"])
 }
 
 // [GIVEN] 존재하지 않는 게시글 ID가 제공된 경우
@@ -50,7 +55,18 @@ func TestGetPostById_NotFound(t *testing.T) {
 	handler.GetPostByID(mockRepo)(c)
 
 	// Then
-	AssertResponseJSON(t, w, http.StatusNotFound, "error", "게시글을 찾을 수 없습니다")
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "NOT_FOUND", errorData["code"])
+	assert.Equal(t, "게시글을 찾을 수 없습니다", errorData["message"])
 }
 
 // [GIVEN] postId 파라미터가 비어있는 경우
@@ -67,7 +83,18 @@ func TestGetPostById_MissingId(t *testing.T) {
 	handler.GetPostByID(mockRepo)(c)
 
 	// Then
-	AssertResponseJSON(t, w, http.StatusBadRequest, "error", "게시글 ID가 필요합니다")
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "BAD_REQUEST", errorData["code"])
+	assert.Equal(t, "게시글 ID가 필요합니다", errorData["message"])
 }
 
 // [GIVEN] Repository에서 에러가 발생하는 경우
@@ -84,5 +111,16 @@ func TestGetPostById_Error(t *testing.T) {
 	handler.GetPostByID(mockRepo)(c)
 
 	// Then
-	AssertResponseJSON(t, w, http.StatusInternalServerError, "error", "게시글 조회에 실패했습니다")
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
+	assert.Equal(t, "게시글 조회에 실패했습니다", errorData["message"])
 }

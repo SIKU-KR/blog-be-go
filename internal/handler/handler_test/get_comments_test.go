@@ -28,8 +28,13 @@ func TestGetComments_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-
-	comments := response["comments"].([]interface{})
+	
+	// 새로운 응답 구조체 확인
+	assert.True(t, response["success"].(bool))
+	assert.NotNil(t, response["data"])
+	
+	data := response["data"].(map[string]interface{})
+	comments := data["comments"].([]interface{})
 	assert.Equal(t, 3, len(comments))
 }
 
@@ -51,8 +56,13 @@ func TestGetComments_WithPostIdFilter(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-
-	comments := response["comments"].([]interface{})
+	
+	// 새로운 응답 구조체 확인
+	assert.True(t, response["success"].(bool))
+	assert.NotNil(t, response["data"])
+	
+	data := response["data"].(map[string]interface{})
+	comments := data["comments"].([]interface{})
 	assert.Equal(t, 2, len(comments)) // post1에 연결된 댓글은 2개
 }
 
@@ -68,7 +78,18 @@ func TestGetComments_Error(t *testing.T) {
 	handler.GetComments(mockRepo)(c)
 
 	// Then
-	AssertResponseJSON(t, w, http.StatusInternalServerError, "error", assert.AnError.Error())
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
+	assert.Equal(t, assert.AnError.Error(), errorData["message"])
 }
 
 // [GIVEN] 정상적인 특정 게시글의 댓글이 있는 경우
@@ -91,8 +112,13 @@ func TestGetCommentsByPostID_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-
-	comments := response["comments"].([]interface{})
+	
+	// 새로운 응답 구조체 확인
+	assert.True(t, response["success"].(bool))
+	assert.NotNil(t, response["data"])
+	
+	data := response["data"].(map[string]interface{})
+	comments := data["comments"].([]interface{})
 	assert.Equal(t, 2, len(comments)) // post1에 연결된 댓글은 2개
 }
 
@@ -110,7 +136,18 @@ func TestGetCommentsByPostID_MissingId(t *testing.T) {
 	handler.GetCommentsByPostID(mockRepo)(c)
 
 	// Then
-	AssertResponseJSON(t, w, http.StatusBadRequest, "error", "게시글 ID가 필요합니다")
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "BAD_REQUEST", errorData["code"])
+	assert.Equal(t, "게시글 ID가 필요합니다", errorData["message"])
 }
 
 // [GIVEN] Repository에서 에러가 발생하는 경우
@@ -127,5 +164,16 @@ func TestGetCommentsByPostID_Error(t *testing.T) {
 	handler.GetCommentsByPostID(mockRepo)(c)
 
 	// Then
-	AssertResponseJSON(t, w, http.StatusInternalServerError, "error", assert.AnError.Error())
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	
+	var response map[string]interface{}
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
+	assert.Equal(t, assert.AnError.Error(), errorData["message"])
 }

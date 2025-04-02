@@ -49,8 +49,12 @@ func TestCreatePost_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
+	
+	// 새로운 응답 구조체 확인
+	assert.True(t, response["success"].(bool))
+	assert.NotNil(t, response["data"])
 
-	post := response["post"].(map[string]interface{})
+	post := response["data"].(map[string]interface{})
 	assert.Equal(t, "테스트 게시글", post["title"])
 	assert.Equal(t, "테스트 내용입니다.", post["content"])
 	assert.Equal(t, "테스트 요약입니다.", post["summary"])
@@ -81,7 +85,13 @@ func TestCreatePost_InvalidRequest(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Contains(t, response["error"].(string), "요청 형식이 올바르지 않습니다")
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "BAD_REQUEST", errorData["code"])
+	assert.Contains(t, errorData["message"], "요청 형식이 올바르지 않습니다")
 }
 
 // [GIVEN] Repository에서 에러가 발생하는 경우
@@ -108,5 +118,11 @@ func TestCreatePost_SaveError(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Contains(t, response["error"].(string), "게시글 등록에 실패했습니다")
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
+	assert.Contains(t, errorData["message"], "게시글 등록에 실패했습니다")
 }

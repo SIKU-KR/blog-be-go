@@ -96,7 +96,13 @@ func TestDeleteComment_Success(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, "댓글이 성공적으로 삭제되었습니다", response["message"])
+	
+	// 새로운 응답 구조체 확인
+	assert.True(t, response["success"].(bool))
+	assert.NotNil(t, response["data"])
+	
+	data := response["data"].(map[string]interface{})
+	assert.Equal(t, "댓글이 성공적으로 삭제되었습니다", data["message"])
 	assert.Equal(t, "comment1", mockRepo.deletedCommentID)
 }
 
@@ -123,7 +129,13 @@ func TestDeleteComment_NotFound(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Contains(t, response["error"].(string), "댓글을 찾을 수 없음")
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "NOT_FOUND", errorData["code"])
+	assert.Contains(t, errorData["message"], "댓글을 찾을 수 없음")
 }
 
 // [GIVEN] 댓글 ID가 비어있는 경우
@@ -146,7 +158,13 @@ func TestDeleteComment_MissingId(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, "댓글 ID가 필요합니다", response["error"])
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "BAD_REQUEST", errorData["code"])
+	assert.Equal(t, "댓글 ID가 필요합니다", errorData["message"])
 }
 
 // [GIVEN] Repository에서 내부 에러가 발생하는 경우
@@ -174,5 +192,11 @@ func TestDeleteComment_InternalError(t *testing.T) {
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Contains(t, response["error"].(string), "댓글 삭제에 실패했습니다")
+	
+	assert.False(t, response["success"].(bool))
+	assert.NotNil(t, response["error"])
+	
+	errorData := response["error"].(map[string]interface{})
+	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
+	assert.Contains(t, errorData["message"], "댓글 삭제에 실패했습니다")
 }

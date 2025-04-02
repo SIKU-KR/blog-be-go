@@ -13,9 +13,7 @@ func DeletePost(postRepo repository.PostRepositoryInterface, commentRepo reposit
 		// 1. 경로 파라미터 확인
 		postID := c.Param("id")
 		if postID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "게시글 ID가 필요합니다",
-			})
+			SendBadRequestError(c, "게시글 ID가 필요합니다")
 			return
 		}
 
@@ -24,15 +22,11 @@ func DeletePost(postRepo repository.PostRepositoryInterface, commentRepo reposit
 		if err != nil {
 			// PostNotFoundError 확인
 			if _, ok := err.(*repository.PostNotFoundError); ok {
-				c.JSON(http.StatusNotFound, gin.H{
-					"error": err.Error(),
-				})
+				SendNotFoundError(c, err.Error())
 				return
 			}
 
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "게시글 삭제에 실패했습니다: " + err.Error(),
-			})
+			SendInternalServerError(c, "게시글 삭제에 실패했습니다: "+err.Error())
 			return
 		}
 
@@ -44,7 +38,7 @@ func DeletePost(postRepo repository.PostRepositoryInterface, commentRepo reposit
 		}
 
 		// 4. 성공 응답
-		c.JSON(http.StatusOK, gin.H{
+		SendSuccess(c, http.StatusOK, map[string]string{
 			"message": "게시글이 성공적으로 삭제되었습니다",
 		})
 	}

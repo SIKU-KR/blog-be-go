@@ -23,18 +23,14 @@ func CreateComment(
 		// 1. 요청 바디 검증
 		var req CreateCommentRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "요청 형식이 올바르지 않습니다: " + err.Error(),
-			})
+			SendBadRequestError(c, "요청 형식이 올바르지 않습니다: "+err.Error())
 			return
 		}
 
 		// 2. 게시글 ID 추출
 		postID := c.Param("postId")
 		if postID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "게시글 ID가 필요합니다",
-			})
+			SendBadRequestError(c, "게시글 ID가 필요합니다")
 			return
 		}
 
@@ -42,15 +38,11 @@ func CreateComment(
 		if postRepo != nil {
 			post, err := postRepo.GetPostByID(c.Request.Context(), postID)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "게시글 확인 중 오류가 발생했습니다",
-				})
+				SendInternalServerError(c, "게시글 확인 중 오류가 발생했습니다")
 				return
 			}
 			if post == nil {
-				c.JSON(http.StatusNotFound, gin.H{
-					"error": "존재하지 않는 게시글입니다",
-				})
+				SendNotFoundError(c, "존재하지 않는 게시글입니다")
 				return
 			}
 		}
@@ -65,15 +57,11 @@ func CreateComment(
 		// 5. 댓글 저장
 		createdComment, err := commentRepo.CreateComment(c.Request.Context(), comment)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "댓글 등록에 실패했습니다: " + err.Error(),
-			})
+			SendInternalServerError(c, "댓글 등록에 실패했습니다: "+err.Error())
 			return
 		}
 
 		// 6. 성공 응답
-		c.JSON(http.StatusCreated, gin.H{
-			"comment": createdComment,
-		})
+		SendSuccess(c, http.StatusCreated, createdComment)
 	}
 }

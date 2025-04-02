@@ -22,13 +22,11 @@ func GetComments(commentRepo repository.CommentRepositoryInterface) gin.HandlerF
 		// 댓글 조회
 		comments, err := commentRepo.GetComments(c.Request.Context(), &input)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": err.Error(),
-			})
+			SendInternalServerError(c, err.Error())
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
+		SendSuccess(c, http.StatusOK, map[string]interface{}{
 			"comments": comments,
 		})
 	}
@@ -41,9 +39,7 @@ func GetCommentsByPostID(commentRepo repository.CommentRepositoryInterface) gin.
 		// URL 파라미터에서 postId 추출
 		postID := c.Param("id")
 		if postID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "게시글 ID가 필요합니다",
-			})
+			SendBadRequestError(c, "게시글 ID가 필요합니다")
 			return
 		}
 
@@ -53,13 +49,11 @@ func GetCommentsByPostID(commentRepo repository.CommentRepositoryInterface) gin.
 		}
 		comments, err := commentRepo.GetComments(c.Request.Context(), &input)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": err.Error(),
-			})
+			SendInternalServerError(c, err.Error())
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
+		SendSuccess(c, http.StatusOK, map[string]interface{}{
 			"comments": comments,
 		})
 	}

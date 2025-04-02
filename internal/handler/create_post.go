@@ -24,18 +24,14 @@ func CreatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 		// 1. 요청 바디 검증
 		var req CreatePostRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "요청 형식이 올바르지 않습니다: " + err.Error(),
-			})
+			SendBadRequestError(c, "요청 형식이 올바르지 않습니다: "+err.Error())
 			return
 		}
 
 		// 2. nanoid 12자리 생성
 		postID, err := gonanoid.New(12)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "게시글 ID 생성 실패",
-			})
+			SendInternalServerError(c, "게시글 ID 생성 실패")
 			return
 		}
 
@@ -56,15 +52,11 @@ func CreatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 		// 5. 게시글 저장
 		err = postRepo.CreatePost(c.Request.Context(), post)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "게시글 등록에 실패했습니다: " + err.Error(),
-			})
+			SendInternalServerError(c, "게시글 등록에 실패했습니다: "+err.Error())
 			return
 		}
 
 		// 6. 성공 응답
-		c.JSON(http.StatusCreated, gin.H{
-			"post": post,
-		})
+		SendSuccess(c, http.StatusCreated, post)
 	}
 }

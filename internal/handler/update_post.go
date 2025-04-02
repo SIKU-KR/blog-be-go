@@ -23,18 +23,14 @@ func UpdatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 		// 1. 경로 파라미터 확인
 		postID := c.Param("id")
 		if postID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "게시글 ID가 필요합니다",
-			})
+			SendBadRequestError(c, "게시글 ID가 필요합니다")
 			return
 		}
 
 		// 2. 요청 바디 검증
 		var req UpdatePostRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "요청 형식이 올바르지 않습니다: " + err.Error(),
-			})
+			SendBadRequestError(c, "요청 형식이 올바르지 않습니다: "+err.Error())
 			return
 		}
 
@@ -56,30 +52,22 @@ func UpdatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 		if err != nil {
 			// PostNotFoundError 확인
 			if _, ok := err.(*repository.PostNotFoundError); ok {
-				c.JSON(http.StatusNotFound, gin.H{
-					"error": err.Error(),
-				})
+				SendNotFoundError(c, err.Error())
 				return
 			}
 
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "게시글 수정에 실패했습니다: " + err.Error(),
-			})
+			SendInternalServerError(c, "게시글 수정에 실패했습니다: "+err.Error())
 			return
 		}
 
 		// 6. 수정된 게시글 조회
 		updatedPost, err := postRepo.GetPostByID(c.Request.Context(), postID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "수정된 게시글 조회에 실패했습니다: " + err.Error(),
-			})
+			SendInternalServerError(c, "수정된 게시글 조회에 실패했습니다: "+err.Error())
 			return
 		}
 
 		// 7. 성공 응답
-		c.JSON(http.StatusOK, gin.H{
-			"post": updatedPost,
-		})
+		SendSuccess(c, http.StatusOK, updatedPost)
 	}
 }

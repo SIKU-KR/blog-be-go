@@ -48,13 +48,15 @@ func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "게시글 목록 조회에 실패했습니다"})
+			SendInternalServerError(c, "게시글 목록 조회에 실패했습니다")
 			return
 		}
 
-		c.JSON(http.StatusOK, GetPostsResponse{
+		response := GetPostsResponse{
 			Posts:     result.Posts,
 			NextToken: result.NextToken,
-		})
+		}
+
+		SendSuccess(c, http.StatusOK, response)
 	}
 }

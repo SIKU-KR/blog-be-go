@@ -14,21 +14,23 @@ func PostLogin(c *gin.Context) {
 	var loginVals model.LoginRequest
 
 	if err := c.ShouldBindJSON(&loginVals); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Bad Request"})
+		SendBadRequestError(c, "잘못된 요청 형식입니다")
 		return
 	}
 
 	if isValidLogin(loginVals) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to login"})
+		SendUnauthorizedError(c, "로그인에 실패했습니다")
 		return
 	}
 
 	if err := activateSession(c, loginVals.Username); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save session"})
+		SendInternalServerError(c, "세션 저장에 실패했습니다")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Login Successful"})
+	SendSuccess(c, http.StatusOK, map[string]string{
+		"message": "로그인에 성공했습니다",
+	})
 }
 
 func isValidLogin(value model.LoginRequest) bool {
