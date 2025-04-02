@@ -2,9 +2,6 @@ package handler
 
 import (
 	"bumsiku/internal/handler"
-	"bumsiku/internal/model"
-	"bumsiku/internal/repository"
-	"context"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -12,31 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
-
-// CommentRepositoryMock은 repository.CommentRepositoryInterface를 구현하는 모의 객체입니다.
-type CommentRepositoryMock struct {
-	comments []model.Comment
-	err      error
-}
-
-func (m *CommentRepositoryMock) GetComments(ctx context.Context, input *repository.GetCommentsInput) ([]model.Comment, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-
-	// postID로 필터링
-	if input != nil && input.PostID != nil {
-		filteredComments := make([]model.Comment, 0)
-		for _, comment := range m.comments {
-			if comment.PostID == *input.PostID {
-				filteredComments = append(filteredComments, comment)
-			}
-		}
-		return filteredComments, nil
-	}
-
-	return m.comments, nil
-}
 
 // [GIVEN] 정상적인 댓글 목록이 있는 경우
 // [WHEN] GetComments 핸들러를 호출

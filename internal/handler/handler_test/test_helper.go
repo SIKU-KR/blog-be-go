@@ -55,32 +55,6 @@ func (m *mockPostRepository) GetPostByID(ctx context.Context, postID string) (*m
 	return nil, nil
 }
 
-// MockCommentRepository는 테스트에 사용되는 댓글 저장소 모의 객체입니다.
-type mockCommentRepository struct {
-	repository.CommentRepository
-	comments []model.Comment
-	err      error
-}
-
-func (m *mockCommentRepository) GetComments(ctx context.Context, input *repository.GetCommentsInput) ([]model.Comment, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-
-	// postID로 필터링
-	if input != nil && input.PostID != nil {
-		filteredComments := make([]model.Comment, 0)
-		for _, comment := range m.comments {
-			if comment.PostID == *input.PostID {
-				filteredComments = append(filteredComments, comment)
-			}
-		}
-		return filteredComments, nil
-	}
-
-	return m.comments, nil
-}
-
 // CreateTestPosts는 테스트용 게시글 데이터를 생성합니다.
 func CreateTestPosts() []model.Post {
 	now := time.Now()
@@ -186,4 +160,29 @@ func AssertJSONResponse(t *testing.T, w *httptest.ResponseRecorder, expectedStat
 
 	err := json.Unmarshal(w.Body.Bytes(), &expectedResponse)
 	assert.NoError(t, err)
+}
+
+// CommentRepositoryMock은 repository.CommentRepositoryInterface를 구현하는 모의 객체입니다.
+type CommentRepositoryMock struct {
+	comments []model.Comment
+	err      error
+}
+
+func (m *CommentRepositoryMock) GetComments(ctx context.Context, input *repository.GetCommentsInput) ([]model.Comment, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	// postID로 필터링
+	if input != nil && input.PostID != nil {
+		filteredComments := make([]model.Comment, 0)
+		for _, comment := range m.comments {
+			if comment.PostID == *input.PostID {
+				filteredComments = append(filteredComments, comment)
+			}
+		}
+		return filteredComments, nil
+	}
+
+	return m.comments, nil
 }
