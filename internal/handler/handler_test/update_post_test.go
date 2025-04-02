@@ -108,6 +108,27 @@ func (m *PostRepositoryForUpdatePostMock) UpdatePost(ctx context.Context, post *
 	return nil
 }
 
+func (m *PostRepositoryForUpdatePostMock) DeletePost(ctx context.Context, postID string) error {
+	if m.err != nil {
+		return m.err
+	}
+
+	// 게시글 존재 여부 확인
+	found := false
+	for _, p := range m.posts {
+		if p.PostID == postID {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return &repository.PostNotFoundError{PostID: postID}
+	}
+
+	return nil
+}
+
 // [GIVEN] 유효한 게시글 수정 요청이 있는 경우
 // [WHEN] UpdatePost 핸들러를 호출
 // [THEN] 상태코드 200과 수정된 게시글 반환 확인

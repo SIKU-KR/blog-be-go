@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
 )
 
@@ -18,6 +19,7 @@ const CommentTableName = "blog_comments"
 type CommentRepositoryInterface interface {
 	GetComments(ctx context.Context, input *GetCommentsInput) ([]model.Comment, error)
 	CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error)
+	DeleteCommentsByPostID(ctx context.Context, postID string) error
 }
 
 type CommentRepository struct {
@@ -123,4 +125,52 @@ func (r *CommentRepository) CreateComment(ctx context.Context, comment *model.Co
 	}
 
 	return comment, nil
+}
+
+func (r *CommentRepository) DeleteCommentsByPostID(ctx context.Context, postID string) error {
+	// 먼저 해당 게시글의 모든 댓글을 조회합니다
+	comments, err := r.getCommentsByPostID(ctx, postID)
+	if err != nil {
+		return err
+	}
+
+	// 댓글이 없으면 바로 성공 반환
+	if len(comments) == 0 {
+		return nil
+	}
+
+	// 배치 쓰기 요청을 준비합니다
+	var writeRequests []types.WriteRequest
+	for _, comment := range comments {
+		writeRequests = append(writeRequests, types.WriteRequest{
+			DeleteRequest: &types.DeleteRequest{
+				Key: map[string]types.AttributeValue{
+					"postId":    &types.AttributeValueMemberS{Value: comment.PostID},
+					"commentId": &types.AttributeValueMemberS{Value: comment.CommentID},
+				},
+			},
+		})
+	}
+
+	// DynamoDB의 BatchWriteItem은 한 번에 최대 25개 항목만 처리할 수 있으므로
+	// 25개씩 나누어 처리합니다
+	for i := 0; i < len(writeRequests); i += 25 {
+		end := i + 25
+		if end > len(writeRequests) {
+			end = len(writeRequests)
+		}
+
+		batch := writeRequests[i:end]
+		_, err := r.client.BatchWriteItem(ctx, &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{
+				CommentTableName: batch,
+			},
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

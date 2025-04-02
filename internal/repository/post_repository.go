@@ -20,6 +20,7 @@ type PostRepositoryInterface interface {
 	GetPostByID(ctx context.Context, postID string) (*model.Post, error)
 	CreatePost(ctx context.Context, post *model.Post) error
 	UpdatePost(ctx context.Context, post *model.Post) error
+	DeletePost(ctx context.Context, postID string) error
 }
 
 type PostRepository struct {
@@ -252,4 +253,25 @@ func unmarshallPostItem(item map[string]types.AttributeValue) (*model.Post, erro
 	}
 
 	return post, nil
+}
+
+func (r *PostRepository) DeletePost(ctx context.Context, postID string) error {
+	// 먼저 게시글이 존재하는지 확인
+	existingPost, err := r.GetPostByID(ctx, postID)
+	if err != nil {
+		return err
+	}
+	if existingPost == nil {
+		return &PostNotFoundError{PostID: postID}
+	}
+
+	// 게시글 삭제
+	_, err = r.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+		TableName: aws.String(PostTableName),
+		Key: map[string]types.AttributeValue{
+			"postId": &types.AttributeValueMemberS{Value: postID},
+		},
+	})
+
+	return err
 }

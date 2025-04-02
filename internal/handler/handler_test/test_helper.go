@@ -68,20 +68,46 @@ func (m *mockPostRepository) UpdatePost(ctx context.Context, post *model.Post) e
 	}
 
 	// 게시글 존재 여부 확인
+	found := false
 	for i, p := range m.posts {
 		if p.PostID == post.PostID {
-			// 기존 값 유지하면서 업데이트
+			found = true
+			// 게시글 업데이트
 			m.posts[i].Title = post.Title
 			m.posts[i].Content = post.Content
 			m.posts[i].Summary = post.Summary
 			m.posts[i].Category = post.Category
 			m.posts[i].UpdatedAt = post.UpdatedAt
-			return nil
+			break
 		}
 	}
 
-	// 게시글이 없는 경우
-	return &repository.PostNotFoundError{PostID: post.PostID}
+	if !found {
+		return &repository.PostNotFoundError{PostID: post.PostID}
+	}
+
+	return nil
+}
+
+func (m *mockPostRepository) DeletePost(ctx context.Context, postID string) error {
+	if m.err != nil {
+		return m.err
+	}
+
+	// 게시글 존재 여부 확인
+	found := false
+	for _, p := range m.posts {
+		if p.PostID == postID {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return &repository.PostNotFoundError{PostID: postID}
+	}
+
+	return nil
 }
 
 // CreateTestPosts는 테스트용 게시글 데이터를 생성합니다.
@@ -230,4 +256,13 @@ func (m *CommentRepositoryMock) CreateComment(ctx context.Context, comment *mode
 	m.createdComment = comment
 
 	return comment, nil
+}
+
+func (m *CommentRepositoryMock) DeleteCommentsByPostID(ctx context.Context, postID string) error {
+	if m.err != nil {
+		return m.err
+	}
+
+	// 실제 삭제 로직은 테스트에서 중요하지 않으므로 성공만 반환
+	return nil
 }
