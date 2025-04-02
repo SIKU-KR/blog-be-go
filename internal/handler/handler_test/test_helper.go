@@ -266,3 +266,12 @@ func (m *CommentRepositoryMock) DeleteCommentsByPostID(ctx context.Context, post
 	// 실제 삭제 로직은 테스트에서 중요하지 않으므로 성공만 반환
 	return nil
 }
+
+func (m *CommentRepositoryMock) DeleteComment(ctx context.Context, commentID string) error {
+	if m.err != nil {
+		return m.err
+	}
+
+	// 실제 삭제 로직은 테스트에서 중요하지 않으므로 성공만 반환
+	return nil
+}

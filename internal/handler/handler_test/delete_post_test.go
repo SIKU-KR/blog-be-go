@@ -63,6 +63,14 @@ func (m *CommentRepositoryForDeletePostMock) DeleteCommentsByPostID(ctx context.
 	return nil
 }
 
+func (m *CommentRepositoryForDeletePostMock) DeleteComment(ctx context.Context, commentID string) error {
+	if m.err != nil {
+		return m.err
+	}
+
+	return nil
+}
+
 // [GIVEN] 유효한 게시글 ID가 있는 경우
 // [WHEN] DeletePost 핸들러를 호출
 // [THEN] 상태코드 200과 성공 메시지 반환 확인

@@ -20,6 +20,7 @@ type CommentRepositoryInterface interface {
 	GetComments(ctx context.Context, input *GetCommentsInput) ([]model.Comment, error)
 	CreateComment(ctx context.Context, comment *model.Comment) (*model.Comment, error)
 	DeleteCommentsByPostID(ctx context.Context, postID string) error
+	DeleteComment(ctx context.Context, commentID string) error
 }
 
 type CommentRepository struct {
@@ -173,4 +174,48 @@ func (r *CommentRepository) DeleteCommentsByPostID(ctx context.Context, postID s
 	}
 
 	return nil
+}
+
+// CommentNotFoundError는 댓글을 찾을 수 없을 때 발생하는 오류입니다.
+type CommentNotFoundError struct {
+	CommentID string
+}
+
+func (e *CommentNotFoundError) Error() string {
+	return "댓글을 찾을 수 없음: " + e.CommentID
+}
+
+// DeleteComment는 특정 댓글을 삭제합니다.
+func (r *CommentRepository) DeleteComment(ctx context.Context, commentID string) error {
+	// 먼저 댓글이 존재하는지 확인
+	// 모든 댓글을 조회하여 찾아야 함 (DynamoDB에서 commentId로 직접 찾을 수 없기 때문)
+	allComments, err := r.getAllComments(ctx)
+	if err != nil {
+		return err
+	}
+
+	// 댓글 검색
+	var targetComment *model.Comment
+	for _, comment := range allComments {
+		if comment.CommentID == commentID {
+			targetComment = &comment
+			break
+		}
+	}
+
+	// 댓글이 존재하지 않는 경우
+	if targetComment == nil {
+		return &CommentNotFoundError{CommentID: commentID}
+	}
+
+	// 댓글 삭제
+	_, err = r.client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+		TableName: aws.String(CommentTableName),
+		Key: map[string]types.AttributeValue{
+			"postId":    &types.AttributeValueMemberS{Value: targetComment.PostID},
+			"commentId": &types.AttributeValueMemberS{Value: targetComment.CommentID},
+		},
+	})
+
+	return err
 }

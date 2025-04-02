@@ -30,6 +30,7 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	admin.POST("/posts", handler.CreatePost(container.PostRepository))
 	admin.PUT("/posts/:id", handler.UpdatePost(container.PostRepository))
 	admin.DELETE("/posts/:id", handler.DeletePost(container.PostRepository, container.CommentRepository))
+	admin.DELETE("/comments/:commentId", handler.DeleteComment(container.CommentRepository))
 
 	return router
 }
