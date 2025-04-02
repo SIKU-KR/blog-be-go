@@ -26,9 +26,8 @@ func init() {
 
 // MockPostRepository는 테스트에 사용되는 저장소 모의 객체입니다.
 type mockPostRepository struct {
-	posts     []model.Post
-	nextToken *string
-	err       error
+	posts []model.Post
+	err   error
 }
 
 func (m *mockPostRepository) GetPosts(ctx context.Context, input *repository.GetPostsInput) (*repository.GetPostsOutput, error) {
