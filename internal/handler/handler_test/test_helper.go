@@ -55,6 +55,32 @@ func (m *mockPostRepository) GetPostByID(ctx context.Context, postID string) (*m
 	return nil, nil
 }
 
+// MockCommentRepository는 테스트에 사용되는 댓글 저장소 모의 객체입니다.
+type mockCommentRepository struct {
+	repository.CommentRepository
+	comments []model.Comment
+	err      error
+}
+
+func (m *mockCommentRepository) GetComments(ctx context.Context, input *repository.GetCommentsInput) ([]model.Comment, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	// postID로 필터링
+	if input != nil && input.PostID != nil {
+		filteredComments := make([]model.Comment, 0)
+		for _, comment := range m.comments {
+			if comment.PostID == *input.PostID {
+				filteredComments = append(filteredComments, comment)
+			}
+		}
+		return filteredComments, nil
+	}
+
+	return m.comments, nil
+}
+
 // CreateTestPosts는 테스트용 게시글 데이터를 생성합니다.
 func CreateTestPosts() []model.Post {
 	now := time.Now()
@@ -74,6 +100,37 @@ func CreateTestPosts() []model.Post {
 			Category:  "life",
 			CreatedAt: now.Add(time.Hour),
 			UpdatedAt: now.Add(time.Hour),
+		},
+	}
+}
+
+// CreateTestComments는 테스트용 댓글 데이터를 생성합니다.
+func CreateTestComments() []model.Comment {
+	now := time.Now()
+	return []model.Comment{
+		{
+			CommentID: "comment1",
+			PostID:    "post1",
+			Content:   "첫 번째 댓글",
+			Nickname:  "사용자1",
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		{
+			CommentID: "comment2",
+			PostID:    "post1",
+			Content:   "두 번째 댓글",
+			Nickname:  "사용자2",
+			CreatedAt: now.Add(time.Hour),
+			UpdatedAt: now.Add(time.Hour),
+		},
+		{
+			CommentID: "comment3",
+			PostID:    "post2",
+			Content:   "다른 게시글의 댓글",
+			Nickname:  "사용자3",
+			CreatedAt: now.Add(2 * time.Hour),
+			UpdatedAt: now.Add(2 * time.Hour),
 		},
 	}
 }
