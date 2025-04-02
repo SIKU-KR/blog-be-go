@@ -27,6 +27,7 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	// Secured Endpoints
 	admin := router.Group("/admin")
 	admin.Use(middleware.SessionAuthMiddleware())
+	admin.POST("/posts", handler.CreatePost(container.PostRepository))
 
 	return router
 }

@@ -55,6 +55,13 @@ func (m *mockPostRepository) GetPostByID(ctx context.Context, postID string) (*m
 	return nil, nil
 }
 
+func (m *mockPostRepository) CreatePost(ctx context.Context, post *model.Post) error {
+	if m.err != nil {
+		return m.err
+	}
+	return nil
+}
+
 // CreateTestPosts는 테스트용 게시글 데이터를 생성합니다.
 func CreateTestPosts() []model.Post {
 	now := time.Now()
