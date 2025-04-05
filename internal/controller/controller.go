@@ -19,6 +19,9 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	router := gin.Default()
 	router.Use(sessions.Sessions(SessionStoreName, newSessionStore()))
 
+	// Static 파일 제공
+	router.StaticFile("/robots.txt", "./static/robots.txt")
+
 	// Swagger
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
