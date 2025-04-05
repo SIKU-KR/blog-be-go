@@ -10,6 +10,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @Summary     관리자 로그인
+// @Description 블로그 관리자 로그인 API
+// @Tags        인증
+// @Accept      json
+// @Produce     json
+// @Param       request body model.LoginRequest true "로그인 정보"
+// @Success     200 {object} map[string]string "로그인 성공"
+// @Failure     400 {object} ErrorResponse "잘못된 요청"
+// @Failure     401 {object} ErrorResponse "로그인 실패"
+// @Failure     500 {object} ErrorResponse "서버 오류"
+// @Router      /login [post]
 func PostLogin(c *gin.Context) {
 	var loginVals model.LoginRequest
 

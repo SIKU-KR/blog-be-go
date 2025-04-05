@@ -7,6 +7,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @Summary     게시물 삭제
+// @Description 블로그 게시물과 관련 댓글을 삭제합니다 (관리자 전용)
+// @Tags        게시물
+// @Accept      json
+// @Produce     json
+// @Security    AdminAuth
+// @Param       id path string true "게시물 ID"
+// @Success     200 {object} map[string]string "삭제 성공 메시지"
+// @Failure     400 {object} ErrorResponse "잘못된 요청"
+// @Failure     401 {object} ErrorResponse "인증 실패"
+// @Failure     404 {object} ErrorResponse "게시물을 찾을 수 없음"
+// @Failure     500 {object} ErrorResponse "서버 오류"
+// @Router      /admin/posts/{id} [delete]
 // DeletePost는 관리자 전용 게시글 삭제 핸들러입니다.
 func DeletePost(postRepo repository.PostRepositoryInterface, commentRepo repository.CommentRepositoryInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {

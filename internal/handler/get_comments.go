@@ -32,6 +32,16 @@ func GetComments(commentRepo repository.CommentRepositoryInterface) gin.HandlerF
 	}
 }
 
+// @Summary     게시물 댓글 조회
+// @Description 특정 게시물에 작성된 댓글 목록을 조회합니다
+// @Tags        댓글
+// @Accept      json
+// @Produce     json
+// @Param       id path string true "게시물 ID"
+// @Success     200 {object} map[string]interface{} "댓글 목록"
+// @Failure     400 {object} ErrorResponse "잘못된 요청"
+// @Failure     500 {object} ErrorResponse "서버 오류"
+// @Router      /comments/{id} [get]
 // GetCommentsByPostID는 특정 게시글의 댓글만 조회하는 핸들러입니다.
 // URL 파라미터로 게시글 ID를 받습니다.
 func GetCommentsByPostID(commentRepo repository.CommentRepositoryInterface) gin.HandlerFunc {

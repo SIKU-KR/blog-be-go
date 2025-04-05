@@ -8,13 +8,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetPostsResponse 게시물 목록 응답 구조체
 type GetPostsResponse struct {
-	Posts       interface{} `json:"posts"`
-	TotalCount  int64       `json:"totalCount"`
-	CurrentPage int32       `json:"currentPage"`
-	TotalPages  int32       `json:"totalPages"`
+	Posts       interface{} `json:"posts" swaggertype:"array,object"` // 게시물 목록
+	TotalCount  int64       `json:"totalCount" example:"100"`         // 전체 게시물 수
+	CurrentPage int32       `json:"currentPage" example:"1"`          // 현재 페이지
+	TotalPages  int32       `json:"totalPages" example:"10"`          // 전체 페이지 수
 }
 
+// @Summary     게시물 목록 조회
+// @Description 블로그 게시물 목록을 페이지네이션하여 조회합니다
+// @Tags        게시물
+// @Accept      json
+// @Produce     json
+// @Param       category query string false "카테고리 필터"
+// @Param       page query int false "페이지 번호 (기본값: 1)"
+// @Param       pageSize query int false "페이지 크기 (기본값: 10)"
+// @Success     200 {object} GetPostsResponse
+// @Failure     500 {object} ErrorResponse "서버 오류"
+// @Router      /posts [get]
 func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 쿼리 파라미터 파싱

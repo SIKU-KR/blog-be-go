@@ -10,10 +10,22 @@ import (
 
 // CreateCommentRequest는 댓글 생성 요청 구조체입니다.
 type CreateCommentRequest struct {
-	Nickname string `json:"nickname" binding:"required"`
-	Content  string `json:"content" binding:"required"`
+	Nickname string `json:"nickname" binding:"required" example:"익명사용자"`   // 닉네임
+	Content  string `json:"content" binding:"required" example:"좋은 글이네요!"` // 댓글 내용
 }
 
+// @Summary     댓글 등록
+// @Description 특정 게시물에 새 댓글을 등록합니다
+// @Tags        댓글
+// @Accept      json
+// @Produce     json
+// @Param       postId path string true "게시물 ID"
+// @Param       request body CreateCommentRequest true "댓글 정보"
+// @Success     201 {object} model.Comment
+// @Failure     400 {object} ErrorResponse "잘못된 요청"
+// @Failure     404 {object} ErrorResponse "게시물을 찾을 수 없음"
+// @Failure     500 {object} ErrorResponse "서버 오류"
+// @Router      /comments/{postId} [post]
 // CreateComment는 특정 게시글에 댓글을 등록하는 핸들러입니다.
 func CreateComment(
 	commentRepo repository.CommentRepositoryInterface,

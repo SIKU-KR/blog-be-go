@@ -8,15 +8,21 @@ import (
 
 // APIResponse는 모든 API 응답에 사용되는 공통 구조체입니다.
 type APIResponse struct {
-	Success bool        `json:"success"`         // 요청 성공 여부
-	Data    interface{} `json:"data,omitempty"`  // 실제 데이터 (성공 시)
-	Error   *APIError   `json:"error,omitempty"` // 오류 정보 (실패 시)
+	Success bool        `json:"success" example:"true"` // 요청 성공 여부
+	Data    interface{} `json:"data,omitempty"`         // 실제 데이터 (성공 시)
+	Error   *APIError   `json:"error,omitempty"`        // 오류 정보 (실패 시)
 }
 
 // APIError는 API 오류 정보를 담는 구조체입니다.
 type APIError struct {
-	Code    string `json:"code"`    // 오류 코드
-	Message string `json:"message"` // 오류 메시지
+	Code    string `json:"code" example:"BAD_REQUEST"`  // 오류 코드
+	Message string `json:"message" example:"잘못된 요청입니다"` // 오류 메시지
+}
+
+// ErrorResponse Swagger 문서용 오류 응답 구조체
+type ErrorResponse struct {
+	Success bool     `json:"success" example:"false"` // 요청 성공 여부 (항상 false)
+	Error   APIError `json:"error"`                   // 오류 정보
 }
 
 // SendSuccess는 성공 응답을 반환하는 헬퍼 함수입니다.

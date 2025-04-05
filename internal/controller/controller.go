@@ -9,6 +9,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 const SessionStoreName = "loginSession"
@@ -16,6 +18,9 @@ const SessionStoreName = "loginSession"
 func SetupRouter(container *container.Container) *gin.Engine {
 	router := gin.Default()
 	router.Use(sessions.Sessions(SessionStoreName, newSessionStore()))
+
+	// Swagger
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Public Endpoints
 	router.POST("/login", handler.PostLogin)

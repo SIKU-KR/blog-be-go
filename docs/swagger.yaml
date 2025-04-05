@@ -1,0 +1,520 @@
+basePath: /
+definitions:
+  handler.APIError:
+    properties:
+      code:
+        description: 오류 코드
+        example: BAD_REQUEST
+        type: string
+      message:
+        description: 오류 메시지
+        example: 잘못된 요청입니다
+        type: string
+    type: object
+  handler.CreateCommentRequest:
+    properties:
+      content:
+        description: 댓글 내용
+        example: 좋은 글이네요!
+        type: string
+      nickname:
+        description: 닉네임
+        example: 익명사용자
+        type: string
+    required:
+    - content
+    - nickname
+    type: object
+  handler.CreatePostRequest:
+    properties:
+      category:
+        description: 카테고리
+        example: technology
+        type: string
+      content:
+        description: 게시물 내용
+        example: 게시물 본문 내용...
+        type: string
+      summary:
+        description: 게시물 요약
+        example: 게시물 요약...
+        type: string
+      title:
+        description: 게시물 제목
+        example: 새로운 블로그 게시물
+        type: string
+    required:
+    - category
+    - content
+    - summary
+    - title
+    type: object
+  handler.ErrorResponse:
+    properties:
+      error:
+        allOf:
+        - $ref: '#/definitions/handler.APIError'
+        description: 오류 정보
+      success:
+        description: 요청 성공 여부 (항상 false)
+        example: false
+        type: boolean
+    type: object
+  handler.GetPostsResponse:
+    properties:
+      currentPage:
+        description: 현재 페이지
+        example: 1
+        type: integer
+      posts:
+        description: 게시물 목록
+        items:
+          type: object
+        type: array
+      totalCount:
+        description: 전체 게시물 수
+        example: 100
+        type: integer
+      totalPages:
+        description: 전체 페이지 수
+        example: 10
+        type: integer
+    type: object
+  handler.UpdatePostRequest:
+    properties:
+      category:
+        description: 카테고리
+        example: technology
+        type: string
+      content:
+        description: 게시물 내용
+        example: 수정된 게시물 본문 내용...
+        type: string
+      summary:
+        description: 게시물 요약
+        example: 수정된 게시물 요약...
+        type: string
+      title:
+        description: 게시물 제목
+        example: 수정된 블로그 게시물
+        type: string
+    required:
+    - category
+    - content
+    - summary
+    - title
+    type: object
+  model.Comment:
+    properties:
+      commentId:
+        description: 댓글 ID
+        example: comment-123
+        type: string
+      content:
+        description: 댓글 내용
+        example: 댓글 내용입니다.
+        type: string
+      createdAt:
+        description: 생성 시간
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      nickname:
+        description: 닉네임
+        example: 익명사용자
+        type: string
+      postId:
+        description: 게시물 ID
+        example: post-123
+        type: string
+    type: object
+  model.LoginRequest:
+    properties:
+      password:
+        description: 비밀번호
+        example: '********'
+        type: string
+      username:
+        description: 사용자 아이디
+        example: admin
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  model.Post:
+    properties:
+      category:
+        description: 카테고리
+        example: technology
+        type: string
+      content:
+        description: 게시물 내용
+        example: 게시물 본문 내용...
+        type: string
+      createdAt:
+        description: 생성 시간
+        example: "2023-01-01T00:00:00Z"
+        type: string
+      postId:
+        description: 게시물 ID
+        example: post-123
+        type: string
+      summary:
+        description: 게시물 요약
+        example: 게시물 요약...
+        type: string
+      title:
+        description: 게시물 제목
+        example: 블로그 제목
+        type: string
+      updatedAt:
+        description: 수정 시간
+        example: "2023-01-01T00:00:00Z"
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: 블로그 백엔드 API 서버
+  title: Bumsiku API
+  version: "1.0"
+paths:
+  /admin/comments/{commentId}:
+    delete:
+      consumes:
+      - application/json
+      description: 블로그 댓글을 삭제합니다 (관리자 전용)
+      parameters:
+      - description: 댓글 ID
+        in: path
+        name: commentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 삭제 성공 메시지
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 인증 실패
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: 댓글을 찾을 수 없음
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - AdminAuth: []
+      summary: 댓글 삭제
+      tags:
+      - 댓글
+  /admin/posts:
+    post:
+      consumes:
+      - application/json
+      description: 새 블로그 게시물을 작성합니다 (관리자 전용)
+      parameters:
+      - description: 게시물 정보
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Post'
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 인증 실패
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - AdminAuth: []
+      summary: 게시물 작성
+      tags:
+      - 게시물
+  /admin/posts/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 블로그 게시물과 관련 댓글을 삭제합니다 (관리자 전용)
+      parameters:
+      - description: 게시물 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 삭제 성공 메시지
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 인증 실패
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: 게시물을 찾을 수 없음
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - AdminAuth: []
+      summary: 게시물 삭제
+      tags:
+      - 게시물
+    put:
+      consumes:
+      - application/json
+      description: 기존 블로그 게시물을 수정합니다 (관리자 전용)
+      parameters:
+      - description: 게시물 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 수정할 게시물 정보
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdatePostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Post'
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 인증 실패
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: 게시물을 찾을 수 없음
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - AdminAuth: []
+      summary: 게시물 수정
+      tags:
+      - 게시물
+  /comments/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 특정 게시물에 작성된 댓글 목록을 조회합니다
+      parameters:
+      - description: 게시물 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 댓글 목록
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 게시물 댓글 조회
+      tags:
+      - 댓글
+  /comments/{postId}:
+    post:
+      consumes:
+      - application/json
+      description: 특정 게시물에 새 댓글을 등록합니다
+      parameters:
+      - description: 게시물 ID
+        in: path
+        name: postId
+        required: true
+        type: string
+      - description: 댓글 정보
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Comment'
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: 게시물을 찾을 수 없음
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 댓글 등록
+      tags:
+      - 댓글
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: 블로그 관리자 로그인 API
+      parameters:
+      - description: 로그인 정보
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 로그인 성공
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 로그인 실패
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 관리자 로그인
+      tags:
+      - 인증
+  /posts:
+    get:
+      consumes:
+      - application/json
+      description: 블로그 게시물 목록을 페이지네이션하여 조회합니다
+      parameters:
+      - description: 카테고리 필터
+        in: query
+        name: category
+        type: string
+      - description: '페이지 번호 (기본값: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: '페이지 크기 (기본값: 10)'
+        in: query
+        name: pageSize
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.GetPostsResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 게시물 목록 조회
+      tags:
+      - 게시물
+  /posts/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 특정 ID의 게시물 상세 정보를 조회합니다
+      parameters:
+      - description: 게시물 ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Post'
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: 게시물을 찾을 수 없음
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: 게시물 상세 조회
+      tags:
+      - 게시물
+securityDefinitions:
+  AdminAuth:
+    description: 관리자 인증 세션 쿠키
+    in: cookie
+    name: loginSession
+    type: apiKey
+swagger: "2.0"

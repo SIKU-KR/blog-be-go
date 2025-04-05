@@ -11,12 +11,26 @@ import (
 
 // UpdatePostRequest는 게시글 수정 요청 구조체입니다.
 type UpdatePostRequest struct {
-	Title    string `json:"title" binding:"required"`
-	Content  string `json:"content" binding:"required"`
-	Summary  string `json:"summary" binding:"required"`
-	Category string `json:"category" binding:"required"`
+	Title    string `json:"title" binding:"required" example:"수정된 블로그 게시물"`        // 게시물 제목
+	Content  string `json:"content" binding:"required" example:"수정된 게시물 본문 내용..."` // 게시물 내용
+	Summary  string `json:"summary" binding:"required" example:"수정된 게시물 요약..."`    // 게시물 요약
+	Category string `json:"category" binding:"required" example:"technology"`      // 카테고리
 }
 
+// @Summary     게시물 수정
+// @Description 기존 블로그 게시물을 수정합니다 (관리자 전용)
+// @Tags        게시물
+// @Accept      json
+// @Produce     json
+// @Security    AdminAuth
+// @Param       id path string true "게시물 ID"
+// @Param       request body UpdatePostRequest true "수정할 게시물 정보"
+// @Success     200 {object} model.Post
+// @Failure     400 {object} ErrorResponse "잘못된 요청"
+// @Failure     401 {object} ErrorResponse "인증 실패"
+// @Failure     404 {object} ErrorResponse "게시물을 찾을 수 없음"
+// @Failure     500 {object} ErrorResponse "서버 오류"
+// @Router      /admin/posts/{id} [put]
 // UpdatePost는 관리자 전용 게시글 수정 핸들러입니다.
 func UpdatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {

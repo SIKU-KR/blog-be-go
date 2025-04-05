@@ -12,12 +12,24 @@ import (
 
 // CreatePostRequest는 게시글 생성 요청 구조체입니다.
 type CreatePostRequest struct {
-	Title    string `json:"title" binding:"required"`
-	Content  string `json:"content" binding:"required"`
-	Summary  string `json:"summary" binding:"required"`
-	Category string `json:"category" binding:"required"`
+	Title    string `json:"title" binding:"required" example:"새로운 블로그 게시물"`    // 게시물 제목
+	Content  string `json:"content" binding:"required" example:"게시물 본문 내용..."` // 게시물 내용
+	Summary  string `json:"summary" binding:"required" example:"게시물 요약..."`    // 게시물 요약
+	Category string `json:"category" binding:"required" example:"technology"`  // 카테고리
 }
 
+// @Summary     게시물 작성
+// @Description 새 블로그 게시물을 작성합니다 (관리자 전용)
+// @Tags        게시물
+// @Accept      json
+// @Produce     json
+// @Security    AdminAuth
+// @Param       request body CreatePostRequest true "게시물 정보"
+// @Success     201 {object} model.Post
+// @Failure     400 {object} ErrorResponse "잘못된 요청"
+// @Failure     401 {object} ErrorResponse "인증 실패"
+// @Failure     500 {object} ErrorResponse "서버 오류"
+// @Router      /admin/posts [post]
 // CreatePost는 관리자 전용 게시글 작성 핸들러입니다.
 func CreatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 	return func(c *gin.Context) {

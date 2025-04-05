@@ -7,10 +7,22 @@ import (
 	"os"
 	"time"
 
+	_ "bumsiku/docs" // Swagger 문서 가져오기
 	"bumsiku/internal/config"
 	"bumsiku/internal/container"
 	"bumsiku/internal/controller"
 )
+
+// @title           Bumsiku API
+// @version         1.0
+// @description     블로그 백엔드 API 서버
+// @host            localhost:8080
+// @BasePath        /
+
+// @securityDefinitions.apikey AdminAuth
+// @in cookie
+// @name loginSession
+// @description 관리자 인증 세션 쿠키
 
 func main() {
 	if os.Getenv("GO_ENV") != "production" {
