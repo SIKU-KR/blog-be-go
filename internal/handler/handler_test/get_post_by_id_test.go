@@ -20,7 +20,7 @@ func TestGetPostById_Success(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/posts/post1", "")
-	c.Params = []gin.Param{{Key: "postId", Value: "post1"}}
+	c.Params = []gin.Param{{Key: "id", Value: "post1"}}
 
 	handler.GetPostByID(mockRepo)(c)
 
@@ -50,7 +50,7 @@ func TestGetPostById_NotFound(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/posts/nonexistent", "")
-	c.Params = []gin.Param{{Key: "postId", Value: "nonexistent"}}
+	c.Params = []gin.Param{{Key: "id", Value: "nonexistent"}}
 
 	handler.GetPostByID(mockRepo)(c)
 
@@ -78,7 +78,7 @@ func TestGetPostById_MissingId(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/posts/", "")
-	c.Params = []gin.Param{{Key: "postId", Value: ""}}
+	c.Params = []gin.Param{{Key: "id", Value: ""}}
 
 	handler.GetPostByID(mockRepo)(c)
 
@@ -106,7 +106,7 @@ func TestGetPostById_Error(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/posts/post1", "")
-	c.Params = []gin.Param{{Key: "postId", Value: "post1"}}
+	c.Params = []gin.Param{{Key: "id", Value: "post1"}}
 
 	handler.GetPostByID(mockRepo)(c)
 
