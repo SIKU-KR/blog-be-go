@@ -15,6 +15,63 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/categories": {
+            "put": {
+                "security": [
+                    {
+                        "AdminAuth": []
+                    }
+                ],
+                "description": "블로그 카테고리를 추가하거나 수정합니다 (관리자 전용)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "카테고리"
+                ],
+                "summary": "카테고리 추가/수정",
+                "parameters": [
+                    {
+                        "description": "카테고리 정보",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.UpdateCategoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Category"
+                        }
+                    },
+                    "400": {
+                        "description": "잘못된 요청",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "인증 실패",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "서버 오류",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/comments/{commentId}": {
             "delete": {
                 "security": [
@@ -257,6 +314,35 @@ const docTemplate = `{
                         "description": "게시물을 찾을 수 없음",
                         "schema": {
                             "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "서버 오류",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/categories": {
+            "get": {
+                "description": "블로그에 등록된 모든 카테고리를 순서대로 조회합니다",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "카테고리"
+                ],
+                "summary": "카테고리 목록 조회",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.GetCategoriesResponse"
                         }
                     },
                     "500": {
@@ -611,6 +697,18 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.GetCategoriesResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "description": "카테고리 목록",
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                }
+            }
+        },
         "handler.GetPostsResponse": {
             "type": "object",
             "properties": {
@@ -635,6 +733,25 @@ const docTemplate = `{
                     "description": "전체 페이지 수",
                     "type": "integer",
                     "example": 10
+                }
+            }
+        },
+        "handler.UpdateCategoryRequest": {
+            "type": "object",
+            "required": [
+                "category",
+                "order"
+            ],
+            "properties": {
+                "category": {
+                    "description": "카테고리 식별자",
+                    "type": "string",
+                    "example": "tech"
+                },
+                "order": {
+                    "description": "카테고리 정렬 순서",
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -666,6 +783,26 @@ const docTemplate = `{
                     "description": "게시물 제목",
                     "type": "string",
                     "example": "수정된 블로그 게시물"
+                }
+            }
+        },
+        "model.Category": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "description": "카테고리 (기본키)",
+                    "type": "string",
+                    "example": "tech"
+                },
+                "createdAt": {
+                    "description": "생성 시간",
+                    "type": "string",
+                    "example": "2023-01-01T00:00:00Z"
+                },
+                "order": {
+                    "description": "카테고리 순서",
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },

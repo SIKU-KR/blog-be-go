@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
 	"net/http"
 
@@ -9,7 +10,7 @@ import (
 
 // GetCategoriesResponse 카테고리 목록 응답 구조체
 type GetCategoriesResponse struct {
-	Categories interface{} `json:"categories" swaggertype:"array,object"` // 카테고리 목록
+	Categories []model.Category `json:"categories"` // 카테고리 목록
 }
 
 // @Summary     카테고리 목록 조회
