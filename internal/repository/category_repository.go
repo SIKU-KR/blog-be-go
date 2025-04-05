@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"sort"
+	"time"
 
 	"bumsiku/internal/model"
 
@@ -15,6 +16,7 @@ const CategoryTableName = "blog_categories"
 
 type CategoryRepositoryInterface interface {
 	GetCategories(ctx context.Context) ([]model.Category, error)
+	UpsertCategory(ctx context.Context, category model.Category) error
 }
 
 type CategoryRepository struct {
@@ -47,4 +49,25 @@ func (r *CategoryRepository) GetCategories(ctx context.Context) ([]model.Categor
 	})
 
 	return categories, nil
+}
+
+// UpsertCategory는 카테고리를 생성하거나 업데이트합니다
+func (r *CategoryRepository) UpsertCategory(ctx context.Context, category model.Category) error {
+	// CreatedAt이 설정되지 않은 경우에만 현재 시간으로 설정
+	if category.CreatedAt.IsZero() {
+		category.CreatedAt = time.Now()
+	}
+
+	// DynamoDB에 항목 저장
+	item, err := attributevalue.MarshalMap(category)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.client.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName: aws.String(CategoryTableName),
+		Item:      item,
+	})
+
+	return err
 }
