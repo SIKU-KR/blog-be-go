@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /posts
+Allow: /categories
+Disallow: /admin/
+Disallow: /login
+Disallow: /swagger/
+
+Sitemap: https://bumsiku.kr/sitemap.xml 
