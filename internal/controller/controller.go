@@ -22,6 +22,9 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	// Static 파일 제공
 	router.StaticFile("/robots.txt", "./static/robots.txt")
 
+	// sitemap.xml 제공
+	router.GET("/sitemap.xml", handler.GetSitemap(container.PostRepository, container.CategoryRepository))
+
 	// Swagger
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
