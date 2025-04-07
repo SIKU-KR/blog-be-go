@@ -209,6 +209,29 @@ definitions:
         example: "2023-01-01T00:00:00Z"
         type: string
     type: object
+  model.UploadImageResponse:
+    properties:
+      fileName:
+        description: 업로드된 이미지 파일명
+        example: image-uuid.webp
+        type: string
+      mimeType:
+        description: MIME 타입
+        example: image/webp
+        type: string
+      size:
+        description: 이미지 크기 (바이트)
+        example: 102400
+        type: integer
+      timestamp:
+        description: 업로드 시간 (Unix timestamp)
+        example: 1617235200
+        type: integer
+      url:
+        description: 업로드된 이미지 URL
+        example: https://bumsiku-bucket.s3.ap-northeast-2.amazonaws.com/image-uuid.webp
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -293,6 +316,41 @@ paths:
       summary: 댓글 삭제
       tags:
       - 댓글
+  /admin/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 블로그에 표시할 이미지를 업로드합니다 (관리자 전용)
+      parameters:
+      - description: 이미지 파일
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 업로드 성공
+          schema:
+            $ref: '#/definitions/model.UploadImageResponse'
+        "400":
+          description: 잘못된 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "401":
+          description: 인증되지 않은 요청
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: 서버 오류
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      security:
+      - AdminAuth: []
+      summary: 이미지 업로드
+      tags:
+      - 이미지
   /admin/posts:
     post:
       consumes:

@@ -136,6 +136,61 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/images": {
+            "post": {
+                "security": [
+                    {
+                        "AdminAuth": []
+                    }
+                ],
+                "description": "블로그에 표시할 이미지를 업로드합니다 (관리자 전용)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "이미지"
+                ],
+                "summary": "이미지 업로드",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "이미지 파일",
+                        "name": "image",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "업로드 성공",
+                        "schema": {
+                            "$ref": "#/definitions/model.UploadImageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "잘못된 요청",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "인증되지 않은 요청",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "서버 오류",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/posts": {
             "post": {
                 "security": [
@@ -704,7 +759,7 @@ const docTemplate = `{
                     "description": "카테고리 목록",
                     "type": "array",
                     "items": {
-                        "type": "object"
+                        "$ref": "#/definitions/model.Category"
                     }
                 }
             }
@@ -892,6 +947,36 @@ const docTemplate = `{
                     "description": "수정 시간",
                     "type": "string",
                     "example": "2023-01-01T00:00:00Z"
+                }
+            }
+        },
+        "model.UploadImageResponse": {
+            "type": "object",
+            "properties": {
+                "fileName": {
+                    "description": "업로드된 이미지 파일명",
+                    "type": "string",
+                    "example": "image-uuid.webp"
+                },
+                "mimeType": {
+                    "description": "MIME 타입",
+                    "type": "string",
+                    "example": "image/webp"
+                },
+                "size": {
+                    "description": "이미지 크기 (바이트)",
+                    "type": "integer",
+                    "example": 102400
+                },
+                "timestamp": {
+                    "description": "업로드 시간 (Unix timestamp)",
+                    "type": "integer",
+                    "example": 1617235200
+                },
+                "url": {
+                    "description": "업로드된 이미지 URL",
+                    "type": "string",
+                    "example": "https://bumsiku-bucket.s3.ap-northeast-2.amazonaws.com/image-uuid.webp"
                 }
             }
         }

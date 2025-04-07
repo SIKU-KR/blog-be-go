@@ -4,16 +4,24 @@ import (
 	"bumsiku/internal/repository"
 	"bumsiku/pkg/client"
 	"context"
+
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type Container struct {
 	PostRepository     *repository.PostRepository
 	CommentRepository  *repository.CommentRepository
 	CategoryRepository *repository.CategoryRepository
+	S3Client           *s3.Client
 }
 
 func NewContainer(ctx context.Context) (*Container, error) {
 	ddbClient, err := client.NewDdbClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	s3Client, err := client.NewS3Client(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -26,5 +34,6 @@ func NewContainer(ctx context.Context) (*Container, error) {
 		PostRepository:     postRepo,
 		CommentRepository:  commentRepo,
 		CategoryRepository: categoryRepo,
+		S3Client:           s3Client,
 	}, nil
 }

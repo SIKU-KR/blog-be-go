@@ -44,6 +44,7 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	admin.DELETE("/posts/:id", handler.DeletePost(container.PostRepository, container.CommentRepository))
 	admin.DELETE("/comments/:commentId", handler.DeleteComment(container.CommentRepository))
 	admin.PUT("/categories", handler.UpdateCategory(container.CategoryRepository))
+	admin.POST("/images", handler.UploadImage(container.S3Client))
 
 	return router
 }
