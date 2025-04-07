@@ -90,7 +90,7 @@ func TestGetCategories_Success(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/categories", "")
-	
+
 	MockGetCategories(mockRepo)(c)
 
 	// Then
@@ -122,7 +122,7 @@ func TestGetCategories_Error(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/categories", "")
-	
+
 	MockGetCategories(mockRepo)(c)
 
 	// Then
@@ -149,7 +149,7 @@ func TestGetCategories_EmptyList(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/categories", "")
-	
+
 	MockGetCategories(mockRepo)(c)
 
 	// Then

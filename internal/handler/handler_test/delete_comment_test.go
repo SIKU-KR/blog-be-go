@@ -135,7 +135,7 @@ func TestDeleteComment_Success(t *testing.T) {
 	// When
 	c, w := SetupTestContextWithSession("DELETE", "/admin/comments/comment1", "")
 	c.Params = []gin.Param{{Key: "commentId", Value: "comment1"}}
-	
+
 	MockDeleteComment(mockRepo)(c)
 
 	// Then

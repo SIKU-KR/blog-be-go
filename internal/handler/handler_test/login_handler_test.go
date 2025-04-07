@@ -62,7 +62,7 @@ func TestPostLogin_Success(t *testing.T) {
 	SetTestEnvironment()
 	body := `{"username": "admin", "password": "password"}`
 	c, w := SetupTestContextWithSession("POST", "/login", body)
-	
+
 	MockPostLogin()(c)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -86,7 +86,7 @@ func TestPostLogin_InvalidCredentials(t *testing.T) {
 	SetTestEnvironment()
 	body := `{"username": "wrong", "password": "creds"}`
 	c, w := SetupTestContextWithSession("POST", "/login", body)
-	
+
 	MockPostLogin()(c)
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
@@ -110,7 +110,7 @@ func TestPostLogin_BadRequest(t *testing.T) {
 	SetTestEnvironment()
 	body := `{"username": "admin"}`
 	c, w := SetupTestContextWithSession("POST", "/login", body)
-	
+
 	MockPostLogin()(c)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)

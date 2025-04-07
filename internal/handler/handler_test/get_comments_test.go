@@ -183,7 +183,7 @@ func TestGetCommentsByPostID_Success(t *testing.T) {
 	// When
 	c, w := SetupTestContext("GET", "/comments/post1", "")
 	c.Params = []gin.Param{{Key: "id", Value: "post1"}}
-	
+
 	MockGetCommentsByPostID(mockRepo)(c)
 
 	// Then
@@ -211,7 +211,7 @@ func TestGetCommentsByPostID_MissingID(t *testing.T) {
 	// When
 	c, w := SetupTestContext("GET", "/comments/", "")
 	c.Params = []gin.Param{{Key: "id", Value: ""}}
-	
+
 	MockGetCommentsByPostID(mockRepo)(c)
 
 	// Then

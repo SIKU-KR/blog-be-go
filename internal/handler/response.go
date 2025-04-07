@@ -65,10 +65,8 @@ func SendErrorWithLogging(c *gin.Context, logger *utils.Logger, statusCode int, 
 	}
 
 	// 컨텍스트 정보 추가
-	if contextInfo != nil {
-		for k, v := range contextInfo {
-			fields[k] = v
-		}
+	for k, v := range contextInfo {
+		fields[k] = v
 	}
 
 	// 요청 ID 추가

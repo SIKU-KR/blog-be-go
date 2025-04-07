@@ -72,7 +72,7 @@ func TestUpdateCategory_Success(t *testing.T) {
 
 	// When
 	c, w := SetupTestContextWithSession("PUT", "/admin/categories", validRequest)
-	
+
 	MockUpdateCategory(mockRepo)(c)
 
 	// Then

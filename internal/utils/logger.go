@@ -21,12 +21,11 @@ const (
 
 // Logger CloudWatch 로깅 유틸리티
 type Logger struct {
-	client          *cloudwatchlogs.Client
-	logGroupName    string
-	logStreamPrefix string
-	logStreamName   string
-	sequenceToken   *string
-	env             string
+	client        *cloudwatchlogs.Client
+	logGroupName  string
+	logStreamName string
+	sequenceToken *string
+	env           string
 }
 
 // NewLogger Logger 인스턴스 생성
