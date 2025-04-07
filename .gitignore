@@ -138,3 +138,7 @@ fabric.properties
 .idea/**/azureSettings.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/go,goland
+
+# 환경변수 파일
+go.env
+.env
