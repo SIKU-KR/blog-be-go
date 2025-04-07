@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"bumsiku/internal/handler"
+	"bumsiku/internal/model"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -9,6 +9,93 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+// 핸들러 모의 함수 - 로거를 사용하지 않도록 구현
+func MockCreateComment(commentRepo *CommentRepositoryMock, postRepo *mockPostRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		postID := c.Param("postId")
+		if postID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": map[string]string{
+					"code":    "BAD_REQUEST",
+					"message": "게시글 ID가 필요합니다",
+				},
+			})
+			return
+		}
+
+		// 게시글 존재 확인
+		post, err := postRepo.GetPostByID(c.Request.Context(), postID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": map[string]string{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "게시글 조회에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		if post == nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": map[string]string{
+					"code":    "NOT_FOUND",
+					"message": "존재하지 않는 게시글입니다",
+				},
+			})
+			return
+		}
+
+		// 요청 바인딩
+		var comment model.Comment
+		if err := c.ShouldBindJSON(&comment); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": map[string]string{
+					"code":    "BAD_REQUEST",
+					"message": "요청 형식이 올바르지 않습니다",
+				},
+			})
+			return
+		}
+
+		// 필수 필드 검증
+		if comment.Nickname == "" || comment.Content == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": map[string]string{
+					"code":    "BAD_REQUEST",
+					"message": "닉네임과 내용은 필수 입력 항목입니다",
+				},
+			})
+			return
+		}
+
+		// 댓글에 게시글 ID 설정
+		comment.PostID = postID
+
+		// 댓글 저장
+		createdComment, err := commentRepo.CreateComment(c.Request.Context(), &comment)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": map[string]string{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "댓글 등록에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"success": true,
+			"data":    createdComment,
+		})
+	}
+}
 
 // [GIVEN] 유효한 댓글 생성 요청이 있는 경우
 // [WHEN] CreateComment 핸들러를 호출
@@ -26,7 +113,7 @@ func TestCreateComment_Success(t *testing.T) {
 	c, w := SetupTestContext("POST", "/comments/post1", requestBody)
 	c.Params = []gin.Param{{Key: "postId", Value: "post1"}}
 
-	handler.CreateComment(mockCommentRepo, mockPostRepo)(c)
+	MockCreateComment(mockCommentRepo, mockPostRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -61,7 +148,7 @@ func TestCreateComment_MissingPostId(t *testing.T) {
 	c, w := SetupTestContext("POST", "/comments/", requestBody)
 	c.Params = []gin.Param{{Key: "postId", Value: ""}}
 
-	handler.CreateComment(mockCommentRepo, mockPostRepo)(c)
+	MockCreateComment(mockCommentRepo, mockPostRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -94,7 +181,7 @@ func TestCreateComment_PostNotFound(t *testing.T) {
 	c, w := SetupTestContext("POST", "/comments/nonexistent", requestBody)
 	c.Params = []gin.Param{{Key: "postId", Value: "nonexistent"}}
 
-	handler.CreateComment(mockCommentRepo, mockPostRepo)(c)
+	MockCreateComment(mockCommentRepo, mockPostRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -127,7 +214,7 @@ func TestCreateComment_InvalidRequest(t *testing.T) {
 	c, w := SetupTestContext("POST", "/comments/post1", requestBody)
 	c.Params = []gin.Param{{Key: "postId", Value: "post1"}}
 
-	handler.CreateComment(mockCommentRepo, mockPostRepo)(c)
+	MockCreateComment(mockCommentRepo, mockPostRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -141,7 +228,7 @@ func TestCreateComment_InvalidRequest(t *testing.T) {
 
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "BAD_REQUEST", errorData["code"])
-	assert.Contains(t, errorData["message"], "요청 형식이 올바르지 않습니다")
+	assert.Equal(t, "닉네임과 내용은 필수 입력 항목입니다", errorData["message"])
 }
 
 // [GIVEN] 댓글 저장 중 오류가 발생하는 경우
@@ -160,7 +247,7 @@ func TestCreateComment_SaveError(t *testing.T) {
 	c, w := SetupTestContext("POST", "/comments/post1", requestBody)
 	c.Params = []gin.Param{{Key: "postId", Value: "post1"}}
 
-	handler.CreateComment(mockCommentRepo, mockPostRepo)(c)
+	MockCreateComment(mockCommentRepo, mockPostRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)

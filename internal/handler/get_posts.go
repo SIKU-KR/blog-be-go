@@ -2,6 +2,8 @@ package handler
 
 import (
 	"bumsiku/internal/repository"
+	"bumsiku/internal/utils"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -27,7 +29,7 @@ type GetPostsResponse struct {
 // @Success     200 {object} GetPostsResponse
 // @Failure     500 {object} ErrorResponse "서버 오류"
 // @Router      /posts [get]
-func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
+func GetPosts(postRepo repository.PostRepositoryInterface, logger *utils.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 쿼리 파라미터 파싱
 		category := c.Query("category")
@@ -62,7 +64,19 @@ func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			SendInternalServerError(c, "게시글 목록 조회에 실패했습니다")
+			contextInfo := map[string]string{
+				"handler":  "GetPosts",
+				"step":     "게시글 목록 조회",
+				"page":     fmt.Sprintf("%d", page),
+				"pageSize": fmt.Sprintf("%d", pageSize),
+				"clientIP": c.ClientIP(),
+			}
+
+			if categoryPtr != nil {
+				contextInfo["category"] = *categoryPtr
+			}
+
+			SendInternalServerErrorWithLogging(c, logger, "게시글 목록 조회에 실패했습니다", err, contextInfo)
 			return
 		}
 
@@ -75,6 +89,21 @@ func GetPosts(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 			CurrentPage: page,
 			TotalPages:  int32(totalPages),
 		}
+
+		// 성공 로깅
+		contextInfo := map[string]string{
+			"handler":    "GetPosts",
+			"page":       fmt.Sprintf("%d", page),
+			"pageSize":   fmt.Sprintf("%d", pageSize),
+			"totalCount": fmt.Sprintf("%d", result.TotalCount),
+			"clientIP":   c.ClientIP(),
+		}
+
+		if categoryPtr != nil {
+			contextInfo["category"] = *categoryPtr
+		}
+
+		logger.Info(c.Request.Context(), "게시글 목록 조회 성공", contextInfo)
 
 		SendSuccess(c, http.StatusOK, response)
 	}

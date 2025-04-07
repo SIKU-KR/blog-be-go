@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bumsiku/internal/repository"
+	"bumsiku/internal/utils"
 	"context"
 	"fmt"
 	"net/http"
@@ -11,7 +12,7 @@ import (
 )
 
 // GetSitemap은 블로그의 모든 게시물과 카테고리를 포함하는 동적 sitemap.xml을 생성합니다.
-func GetSitemap(postRepo *repository.PostRepository, categoryRepo *repository.CategoryRepository) gin.HandlerFunc {
+func GetSitemap(postRepo *repository.PostRepository, categoryRepo *repository.CategoryRepository, logger *utils.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := context.Background()
 
@@ -28,6 +29,12 @@ func GetSitemap(postRepo *repository.PostRepository, categoryRepo *repository.Ca
 		}
 		postsOutput, err := postRepo.GetPosts(ctx, postsInput)
 		if err != nil {
+			contextInfo := map[string]string{
+				"handler":  "GetSitemap",
+				"step":     "게시물 조회",
+				"clientIP": c.ClientIP(),
+			}
+			logger.Error(ctx, "사이트맵 생성 중 게시물 조회 실패", contextInfo)
 			c.XML(http.StatusInternalServerError, gin.H{"error": "게시물을 가져오는 중 오류가 발생했습니다"})
 			return
 		}
@@ -35,9 +42,24 @@ func GetSitemap(postRepo *repository.PostRepository, categoryRepo *repository.Ca
 		// 모든 카테고리 가져오기
 		categories, err := categoryRepo.GetCategories(ctx)
 		if err != nil {
+			contextInfo := map[string]string{
+				"handler":  "GetSitemap",
+				"step":     "카테고리 조회",
+				"clientIP": c.ClientIP(),
+			}
+			logger.Error(ctx, "사이트맵 생성 중 카테고리 조회 실패", contextInfo)
 			c.XML(http.StatusInternalServerError, gin.H{"error": "카테고리를 가져오는 중 오류가 발생했습니다"})
 			return
 		}
+
+		// 성공 로깅
+		logger.Info(ctx, "사이트맵 생성 성공", map[string]string{
+			"handler":       "GetSitemap",
+			"postCount":     fmt.Sprintf("%d", len(postsOutput.Posts)),
+			"categoryCount": fmt.Sprintf("%d", len(categories)),
+			"clientIP":      c.ClientIP(),
+			"generatedTime": time.Now().Format(time.RFC3339),
+		})
 
 		// XML 헤더 설정
 		c.Header("Content-Type", "application/xml")

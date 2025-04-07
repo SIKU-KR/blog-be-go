@@ -3,6 +3,7 @@ package handler
 import (
 	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
+	"bumsiku/internal/utils"
 	"net/http"
 	"time"
 
@@ -31,19 +32,27 @@ type CreatePostRequest struct {
 // @Failure     500 {object} ErrorResponse "서버 오류"
 // @Router      /admin/posts [post]
 // CreatePost는 관리자 전용 게시글 작성 핸들러입니다.
-func CreatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
+func CreatePost(postRepo repository.PostRepositoryInterface, logger *utils.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. 요청 바디 검증
 		var req CreatePostRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			SendBadRequestError(c, "요청 형식이 올바르지 않습니다: "+err.Error())
+			contextInfo := map[string]string{
+				"handler": "CreatePost",
+				"step":    "요청 검증",
+			}
+			SendBadRequestErrorWithLogging(c, logger, "요청 형식이 올바르지 않습니다", err, contextInfo)
 			return
 		}
 
 		// 2. nanoid 12자리 생성
 		postID, err := gonanoid.New(12)
 		if err != nil {
-			SendInternalServerError(c, "게시글 ID 생성 실패")
+			contextInfo := map[string]string{
+				"handler": "CreatePost",
+				"step":    "ID 생성",
+			}
+			SendInternalServerErrorWithLogging(c, logger, "게시글 ID 생성 실패", err, contextInfo)
 			return
 		}
 
@@ -64,9 +73,24 @@ func CreatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 		// 5. 게시글 저장
 		err = postRepo.CreatePost(c.Request.Context(), post)
 		if err != nil {
-			SendInternalServerError(c, "게시글 등록에 실패했습니다: "+err.Error())
+			contextInfo := map[string]string{
+				"handler":  "CreatePost",
+				"step":     "DB 저장",
+				"postID":   postID,
+				"category": req.Category,
+				"title":    req.Title,
+			}
+			SendInternalServerErrorWithLogging(c, logger, "게시글 등록에 실패했습니다", err, contextInfo)
 			return
 		}
+
+		// 로그 남기기 - 성공 케이스
+		logger.Info(c.Request.Context(), "게시글이 성공적으로 생성되었습니다", map[string]string{
+			"handler":  "CreatePost",
+			"postID":   postID,
+			"category": req.Category,
+			"title":    req.Title,
+		})
 
 		// 6. 성공 응답
 		SendSuccess(c, http.StatusCreated, post)

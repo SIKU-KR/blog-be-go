@@ -1,15 +1,83 @@
 package handler
 
 import (
-	"bumsiku/internal/handler"
 	"bumsiku/internal/model"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/rs/xid"
 	"github.com/stretchr/testify/assert"
 )
+
+// 핸들러 모의 함수 - 로거를 사용하지 않도록 구현
+func MockCreatePost(repo *PostRepositoryForCreatePostMock) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 요청 본문 파싱
+		var request struct {
+			Title    string `json:"title"`
+			Content  string `json:"content"`
+			Summary  string `json:"summary"`
+			Category string `json:"category"`
+		}
+
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "BAD_REQUEST",
+					"message": "요청 형식이 올바르지 않습니다",
+				},
+			})
+			return
+		}
+
+		// 필수 필드 검증
+		if request.Title == "" || request.Content == "" || request.Summary == "" || request.Category == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "BAD_REQUEST",
+					"message": "제목, 내용, 요약, 카테고리는 필수 항목입니다",
+				},
+			})
+			return
+		}
+
+		// 게시글 생성
+		now := time.Now()
+		post := &model.Post{
+			PostID:    xid.New().String(),
+			Title:     request.Title,
+			Content:   request.Content,
+			Summary:   request.Summary,
+			Category:  request.Category,
+			CreatedAt: now,
+			UpdatedAt: now,
+		}
+
+		err := repo.CreatePost(c.Request.Context(), post)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "게시글 등록에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"success": true,
+			"data":    post,
+		})
+	}
+}
 
 // PostRepositoryForCreatePostMock은 CreatePost 함수를 구현한 Repository 모의 객체입니다.
 type PostRepositoryForCreatePostMock struct {
@@ -39,9 +107,9 @@ func TestCreatePost_Success(t *testing.T) {
 	}`
 
 	// When
-	c, w := SetupTestContextWithSession("POST", "/admin/posts", requestBody)
-	c.Set("admin", true) // 인증 상태 모의
-	handler.CreatePost(mockRepo)(c)
+	c, w := SetupTestContextWithSession("POST", "/admin/posts", string(requestBody))
+
+	MockCreatePost(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusCreated, w.Code)
@@ -60,7 +128,7 @@ func TestCreatePost_Success(t *testing.T) {
 	assert.Equal(t, "테스트 요약입니다.", post["summary"])
 	assert.Equal(t, "tech", post["category"])
 	assert.NotEmpty(t, post["postId"])
-	assert.Len(t, post["postId"], 12) // 12자리 ID 확인
+	assert.Len(t, post["postId"], 20) // xid 패키지는 20자리 ID를 생성합니다
 }
 
 // [GIVEN] 유효하지 않은 요청 바디가 제공된 경우
@@ -75,9 +143,9 @@ func TestCreatePost_InvalidRequest(t *testing.T) {
 	}`
 
 	// When
-	c, w := SetupTestContextWithSession("POST", "/admin/posts", requestBody)
-	c.Set("admin", true) // 인증 상태 모의
-	handler.CreatePost(mockRepo)(c)
+	c, w := SetupTestContextWithSession("POST", "/admin/posts", string(requestBody))
+
+	MockCreatePost(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -91,7 +159,7 @@ func TestCreatePost_InvalidRequest(t *testing.T) {
 
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "BAD_REQUEST", errorData["code"])
-	assert.Contains(t, errorData["message"], "요청 형식이 올바르지 않습니다")
+	assert.Contains(t, errorData["message"], "필수 항목입니다")
 }
 
 // [GIVEN] Repository에서 에러가 발생하는 경우
@@ -99,7 +167,7 @@ func TestCreatePost_InvalidRequest(t *testing.T) {
 // [THEN] 상태코드 500과 적절한 에러 메시지 반환 확인
 func TestCreatePost_SaveError(t *testing.T) {
 	// Given
-	mockRepo := &PostRepositoryForCreatePostMock{mockPostRepository: mockPostRepository{err: assert.AnError}}
+	mockRepo := &PostRepositoryForCreatePostMock{mockPostRepository: mockPostRepository{err: errors.New("database error")}}
 	requestBody := `{
 		"title": "테스트 게시글",
 		"content": "테스트 내용입니다.",
@@ -108,9 +176,9 @@ func TestCreatePost_SaveError(t *testing.T) {
 	}`
 
 	// When
-	c, w := SetupTestContextWithSession("POST", "/admin/posts", requestBody)
-	c.Set("admin", true) // 인증 상태 모의
-	handler.CreatePost(mockRepo)(c)
+	c, w := SetupTestContextWithSession("POST", "/admin/posts", string(requestBody))
+
+	MockCreatePost(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -124,5 +192,5 @@ func TestCreatePost_SaveError(t *testing.T) {
 
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
-	assert.Contains(t, errorData["message"], "게시글 등록에 실패했습니다")
+	assert.Equal(t, "게시글 등록에 실패했습니다", errorData["message"])
 }

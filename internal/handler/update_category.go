@@ -3,6 +3,8 @@ package handler
 import (
 	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
+	"bumsiku/internal/utils"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -28,12 +30,16 @@ type UpdateCategoryRequest struct {
 // @Failure     500 {object} ErrorResponse "서버 오류"
 // @Router      /admin/categories [put]
 // UpdateCategory는 관리자 전용 카테고리 추가/수정 핸들러입니다.
-func UpdateCategory(categoryRepo repository.CategoryRepositoryInterface) gin.HandlerFunc {
+func UpdateCategory(categoryRepo repository.CategoryRepositoryInterface, logger *utils.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. 요청 바디 검증
 		var req UpdateCategoryRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			SendBadRequestError(c, "요청 형식이 올바르지 않습니다: "+err.Error())
+			contextInfo := map[string]string{
+				"handler": "UpdateCategory",
+				"step":    "요청 검증",
+			}
+			SendBadRequestErrorWithLogging(c, logger, "요청 형식이 올바르지 않습니다", err, contextInfo)
 			return
 		}
 
@@ -47,9 +53,23 @@ func UpdateCategory(categoryRepo repository.CategoryRepositoryInterface) gin.Han
 		// 3. 카테고리 업데이트 또는 생성
 		err := categoryRepo.UpsertCategory(c.Request.Context(), category)
 		if err != nil {
-			SendInternalServerError(c, "카테고리 업데이트에 실패했습니다: "+err.Error())
+			contextInfo := map[string]string{
+				"handler":  "UpdateCategory",
+				"step":     "카테고리 업데이트",
+				"category": req.Category,
+				"order":    fmt.Sprintf("%d", req.Order),
+			}
+			SendInternalServerErrorWithLogging(c, logger, "카테고리 업데이트에 실패했습니다", err, contextInfo)
 			return
 		}
+
+		// 성공 로깅
+		logger.Info(c.Request.Context(), "카테고리 업데이트 성공", map[string]string{
+			"handler":   "UpdateCategory",
+			"category":  req.Category,
+			"order":     fmt.Sprintf("%d", req.Order),
+			"updatedBy": c.GetString("username"),
+		})
 
 		// 4. 성공 응답
 		SendSuccess(c, http.StatusOK, category)

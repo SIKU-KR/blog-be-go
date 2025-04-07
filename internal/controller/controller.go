@@ -5,6 +5,7 @@ import (
 	"bumsiku/internal/handler"
 	"bumsiku/internal/middleware"
 	"bumsiku/internal/utils"
+	"net/http"
 	"os"
 
 	"github.com/gin-contrib/sessions"
@@ -29,32 +30,39 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	router.Use(middleware.ErrorHandlingMiddleware(logger))
 	router.Use(sessions.Sessions(SessionStoreName, newSessionStore()))
 
+	// 루트 경로를 스웨거 문서로 리다이렉션
+	router.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
+	})
+
 	// Static 파일 제공
 	router.StaticFile("/robots.txt", "./static/robots.txt")
 
 	// sitemap.xml 제공
-	router.GET("/sitemap.xml", handler.GetSitemap(container.PostRepository, container.CategoryRepository))
+	router.GET("/sitemap.xml", handler.GetSitemap(container.PostRepository, container.CategoryRepository, logger))
 
 	// Swagger
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Public Endpoints
-	router.POST("/login", handler.PostLogin)
-	router.GET("/posts", handler.GetPosts(container.PostRepository))
-	router.GET("/posts/:id", handler.GetPostByID(container.PostRepository))
-	router.GET("/comments/:id", handler.GetCommentsByPostID(container.CommentRepository))
-	router.POST("/comments/:postId", handler.CreateComment(container.CommentRepository, container.PostRepository))
-	router.GET("/categories", handler.GetCategories(container.CategoryRepository))
+	router.POST("/login", func(c *gin.Context) {
+		handler.PostLogin(c, logger)
+	})
+	router.GET("/posts", handler.GetPosts(container.PostRepository, logger))
+	router.GET("/posts/:id", handler.GetPostByID(container.PostRepository, logger))
+	router.GET("/comments/:id", handler.GetCommentsByPostID(container.CommentRepository, logger))
+	router.POST("/comments/:postId", handler.CreateComment(container.CommentRepository, container.PostRepository, logger))
+	router.GET("/categories", handler.GetCategories(container.CategoryRepository, logger))
 
 	// Secured Endpoints
 	admin := router.Group("/admin")
 	admin.Use(middleware.SessionAuthMiddleware())
-	admin.POST("/posts", handler.CreatePost(container.PostRepository))
-	admin.PUT("/posts/:id", handler.UpdatePost(container.PostRepository))
-	admin.DELETE("/posts/:id", handler.DeletePost(container.PostRepository, container.CommentRepository))
-	admin.DELETE("/comments/:commentId", handler.DeleteComment(container.CommentRepository))
-	admin.PUT("/categories", handler.UpdateCategory(container.CategoryRepository))
-	admin.POST("/images", handler.UploadImage(container.S3Client))
+	admin.POST("/posts", handler.CreatePost(container.PostRepository, logger))
+	admin.PUT("/posts/:id", handler.UpdatePost(container.PostRepository, logger))
+	admin.DELETE("/posts/:id", handler.DeletePost(container.PostRepository, container.CommentRepository, logger))
+	admin.DELETE("/comments/:commentId", handler.DeleteComment(container.CommentRepository, logger))
+	admin.PUT("/categories", handler.UpdateCategory(container.CategoryRepository, logger))
+	admin.POST("/images", handler.UploadImage(container.S3Client, logger))
 
 	return router
 }
