@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/gob"
 	"log"
-	"os"
 	"time"
 
 	_ "bumsiku/docs" // Swagger 문서 가져오기
@@ -25,12 +24,8 @@ import (
 // @description 관리자 인증 세션 쿠키
 
 func main() {
-	if os.Getenv("GO_ENV") != "production" {
-		config.LoadEnv()
-	}
-
+	config.LoadEnv()
 	gob.Register(time.Time{})
-
 	ctx := context.Background()
 	container, err := container.NewContainer(ctx)
 	if err != nil {
