@@ -5,4 +5,4 @@ Disallow: /admin/
 Disallow: /login
 Disallow: /swagger/
 
-Sitemap: https://yourdomain.com/sitemap.xml 
+Sitemap: https://bumsiku.kr/sitemap.xml 
