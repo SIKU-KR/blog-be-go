@@ -4,6 +4,7 @@ import (
 	"bumsiku/internal/container"
 	"bumsiku/internal/handler"
 	"bumsiku/internal/middleware"
+	"bumsiku/internal/utils"
 	"os"
 
 	"github.com/gin-contrib/sessions"
@@ -16,7 +17,16 @@ import (
 const SessionStoreName = "loginSession"
 
 func SetupRouter(container *container.Container) *gin.Engine {
-	router := gin.Default()
+	// 기본 gin 엔진 대신 새 엔진 생성 (기본 미들웨어 없이)
+	router := gin.New()
+
+	// 로거 생성
+	logger := utils.NewLogger(container.CloudWatchClient)
+
+	// 로깅과 복구 미들웨어 추가
+	router.Use(middleware.RecoveryWithLogger(logger))
+	router.Use(middleware.LoggingMiddleware(logger))
+	router.Use(middleware.ErrorHandlingMiddleware(logger))
 	router.Use(sessions.Sessions(SessionStoreName, newSessionStore()))
 
 	// Static 파일 제공

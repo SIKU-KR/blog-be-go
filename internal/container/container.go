@@ -5,6 +5,7 @@ import (
 	"bumsiku/pkg/client"
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
@@ -13,6 +14,7 @@ type Container struct {
 	CommentRepository  *repository.CommentRepository
 	CategoryRepository *repository.CategoryRepository
 	S3Client           *s3.Client
+	CloudWatchClient   *cloudwatchlogs.Client
 }
 
 func NewContainer(ctx context.Context) (*Container, error) {
@@ -26,6 +28,11 @@ func NewContainer(ctx context.Context) (*Container, error) {
 		return nil, err
 	}
 
+	cwClient, err := client.NewCloudWatchLogsClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	postRepo := repository.NewPostRepository(ddbClient)
 	commentRepo := repository.NewCommentRepository(ddbClient)
 	categoryRepo := repository.NewCategoryRepository(ddbClient)
@@ -35,5 +42,6 @@ func NewContainer(ctx context.Context) (*Container, error) {
 		CommentRepository:  commentRepo,
 		CategoryRepository: categoryRepo,
 		S3Client:           s3Client,
+		CloudWatchClient:   cwClient,
 	}, nil
 }
