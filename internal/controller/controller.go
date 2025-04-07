@@ -5,6 +5,7 @@ import (
 	"bumsiku/internal/handler"
 	"bumsiku/internal/middleware"
 	"bumsiku/internal/utils"
+	"net/http"
 	"os"
 
 	"github.com/gin-contrib/sessions"
@@ -28,6 +29,11 @@ func SetupRouter(container *container.Container) *gin.Engine {
 	router.Use(middleware.LoggingMiddleware(logger))
 	router.Use(middleware.ErrorHandlingMiddleware(logger))
 	router.Use(sessions.Sessions(SessionStoreName, newSessionStore()))
+
+	// 루트 경로를 스웨거 문서로 리다이렉션
+	router.GET("/", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
+	})
 
 	// Static 파일 제공
 	router.StaticFile("/robots.txt", "./static/robots.txt")
