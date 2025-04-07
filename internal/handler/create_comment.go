@@ -3,6 +3,7 @@ package handler
 import (
 	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
+	"bumsiku/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -30,19 +31,30 @@ type CreateCommentRequest struct {
 func CreateComment(
 	commentRepo repository.CommentRepositoryInterface,
 	postRepo repository.PostRepositoryInterface,
+	logger *utils.Logger,
 ) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. 요청 바디 검증
 		var req CreateCommentRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			SendBadRequestError(c, "요청 형식이 올바르지 않습니다: "+err.Error())
+			contextInfo := map[string]string{
+				"handler":  "CreateComment",
+				"step":     "요청 검증",
+				"clientIP": c.ClientIP(),
+			}
+			SendBadRequestErrorWithLogging(c, logger, "요청 형식이 올바르지 않습니다", err, contextInfo)
 			return
 		}
 
 		// 2. 게시글 ID 추출
 		postID := c.Param("postId")
 		if postID == "" {
-			SendBadRequestError(c, "게시글 ID가 필요합니다")
+			contextInfo := map[string]string{
+				"handler":  "CreateComment",
+				"step":     "파라미터 검증",
+				"clientIP": c.ClientIP(),
+			}
+			SendBadRequestErrorWithLogging(c, logger, "게시글 ID가 필요합니다", nil, contextInfo)
 			return
 		}
 
@@ -50,11 +62,23 @@ func CreateComment(
 		if postRepo != nil {
 			post, err := postRepo.GetPostByID(c.Request.Context(), postID)
 			if err != nil {
-				SendInternalServerError(c, "게시글 확인 중 오류가 발생했습니다")
+				contextInfo := map[string]string{
+					"handler":  "CreateComment",
+					"step":     "게시글 확인",
+					"postID":   postID,
+					"clientIP": c.ClientIP(),
+				}
+				SendInternalServerErrorWithLogging(c, logger, "게시글 확인 중 오류가 발생했습니다", err, contextInfo)
 				return
 			}
 			if post == nil {
-				SendNotFoundError(c, "존재하지 않는 게시글입니다")
+				contextInfo := map[string]string{
+					"handler":  "CreateComment",
+					"step":     "게시글 확인",
+					"postID":   postID,
+					"clientIP": c.ClientIP(),
+				}
+				SendNotFoundErrorWithLogging(c, logger, "존재하지 않는 게시글입니다", nil, contextInfo)
 				return
 			}
 		}
@@ -69,9 +93,25 @@ func CreateComment(
 		// 5. 댓글 저장
 		createdComment, err := commentRepo.CreateComment(c.Request.Context(), comment)
 		if err != nil {
-			SendInternalServerError(c, "댓글 등록에 실패했습니다: "+err.Error())
+			contextInfo := map[string]string{
+				"handler":  "CreateComment",
+				"step":     "댓글 저장",
+				"postID":   postID,
+				"nickname": req.Nickname,
+				"clientIP": c.ClientIP(),
+			}
+			SendInternalServerErrorWithLogging(c, logger, "댓글 등록에 실패했습니다", err, contextInfo)
 			return
 		}
+
+		// 성공 로깅
+		logger.Info(c.Request.Context(), "댓글 등록 성공", map[string]string{
+			"handler":   "CreateComment",
+			"postID":    postID,
+			"nickname":  req.Nickname,
+			"commentID": createdComment.CommentID,
+			"clientIP":  c.ClientIP(),
+		})
 
 		// 6. 성공 응답
 		SendSuccess(c, http.StatusCreated, createdComment)

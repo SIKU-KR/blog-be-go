@@ -3,6 +3,7 @@ package handler
 import (
 	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
+	"bumsiku/internal/utils"
 	"net/http"
 	"time"
 
@@ -32,19 +33,28 @@ type UpdatePostRequest struct {
 // @Failure     500 {object} ErrorResponse "서버 오류"
 // @Router      /admin/posts/{id} [put]
 // UpdatePost는 관리자 전용 게시글 수정 핸들러입니다.
-func UpdatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
+func UpdatePost(postRepo repository.PostRepositoryInterface, logger *utils.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. 경로 파라미터 확인
 		postID := c.Param("id")
 		if postID == "" {
-			SendBadRequestError(c, "게시글 ID가 필요합니다")
+			contextInfo := map[string]string{
+				"handler": "UpdatePost",
+				"step":    "경로 파라미터 확인",
+			}
+			SendBadRequestErrorWithLogging(c, logger, "게시글 ID가 필요합니다", nil, contextInfo)
 			return
 		}
 
 		// 2. 요청 바디 검증
 		var req UpdatePostRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			SendBadRequestError(c, "요청 형식이 올바르지 않습니다: "+err.Error())
+			contextInfo := map[string]string{
+				"handler": "UpdatePost",
+				"step":    "요청 검증",
+				"postID":  postID,
+			}
+			SendBadRequestErrorWithLogging(c, logger, "요청 형식이 올바르지 않습니다", err, contextInfo)
 			return
 		}
 
@@ -64,22 +74,44 @@ func UpdatePost(postRepo repository.PostRepositoryInterface) gin.HandlerFunc {
 		// 5. 게시글 업데이트
 		err := postRepo.UpdatePost(c.Request.Context(), post)
 		if err != nil {
+			contextInfo := map[string]string{
+				"handler":  "UpdatePost",
+				"step":     "게시글 업데이트",
+				"postID":   postID,
+				"category": req.Category,
+				"title":    req.Title,
+			}
+
 			// PostNotFoundError 확인
 			if _, ok := err.(*repository.PostNotFoundError); ok {
-				SendNotFoundError(c, err.Error())
+				SendNotFoundErrorWithLogging(c, logger, "게시글을 찾을 수 없습니다", err, contextInfo)
 				return
 			}
 
-			SendInternalServerError(c, "게시글 수정에 실패했습니다: "+err.Error())
+			SendInternalServerErrorWithLogging(c, logger, "게시글 수정에 실패했습니다", err, contextInfo)
 			return
 		}
 
 		// 6. 수정된 게시글 조회
 		updatedPost, err := postRepo.GetPostByID(c.Request.Context(), postID)
 		if err != nil {
-			SendInternalServerError(c, "수정된 게시글 조회에 실패했습니다: "+err.Error())
+			contextInfo := map[string]string{
+				"handler": "UpdatePost",
+				"step":    "수정된 게시글 조회",
+				"postID":  postID,
+			}
+			SendInternalServerErrorWithLogging(c, logger, "수정된 게시글 조회에 실패했습니다", err, contextInfo)
 			return
 		}
+
+		// 로그 남기기 - 성공 케이스
+		logger.Info(c.Request.Context(), "게시글이 성공적으로 수정되었습니다", map[string]string{
+			"handler":   "UpdatePost",
+			"postID":    postID,
+			"category":  req.Category,
+			"title":     req.Title,
+			"updatedAt": now.Format(time.RFC3339),
+		})
 
 		// 7. 성공 응답
 		SendSuccess(c, http.StatusOK, updatedPost)

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bumsiku/internal/model"
+	"bumsiku/internal/utils"
 	"net/http"
 	"os"
 	"time"
@@ -21,23 +22,41 @@ import (
 // @Failure     401 {object} ErrorResponse "로그인 실패"
 // @Failure     500 {object} ErrorResponse "서버 오류"
 // @Router      /login [post]
-func PostLogin(c *gin.Context) {
+func PostLogin(c *gin.Context, logger *utils.Logger) {
 	var loginVals model.LoginRequest
 
 	if err := c.ShouldBindJSON(&loginVals); err != nil {
-		SendBadRequestError(c, "잘못된 요청 형식입니다")
+		contextInfo := map[string]string{
+			"handler": "PostLogin",
+			"step":    "요청 검증",
+			"ip":      c.ClientIP(),
+		}
+		SendBadRequestErrorWithLogging(c, logger, "잘못된 요청 형식입니다", err, contextInfo)
 		return
 	}
 
+	// 사용자 이름은 로깅하지만 암호는 로깅하지 않음
+	contextInfo := map[string]string{
+		"handler":  "PostLogin",
+		"username": loginVals.Username,
+		"ip":       c.ClientIP(),
+	}
+
 	if isValidLogin(loginVals) {
-		SendUnauthorizedError(c, "로그인에 실패했습니다")
+		// 로그인 실패 로깅
+		logger.Warn(c.Request.Context(), "로그인 실패: 잘못된 자격 증명", contextInfo)
+		SendUnauthorizedErrorWithLogging(c, logger, "로그인에 실패했습니다", nil, contextInfo)
 		return
 	}
 
 	if err := activateSession(c, loginVals.Username); err != nil {
-		SendInternalServerError(c, "세션 저장에 실패했습니다")
+		contextInfo["step"] = "세션 활성화"
+		SendInternalServerErrorWithLogging(c, logger, "세션 저장에 실패했습니다", err, contextInfo)
 		return
 	}
+
+	// 로그인 성공 로깅
+	logger.Info(c.Request.Context(), "관리자 로그인 성공", contextInfo)
 
 	SendSuccess(c, http.StatusOK, map[string]string{
 		"message": "로그인에 성공했습니다",
