@@ -1,8 +1,4 @@
-# robots.txt 파일은 웹 크롤러에게 사이트의 어떤 부분을 검색할 수 있는지 알려줍니다.
-# https://www.robotstxt.org/robotstxt.html
-
 User-agent: *
 Allow: /
 
-# Sitemap 위치
 Sitemap: https://bumsiku.kr/sitemap.xml 
