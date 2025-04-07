@@ -14,14 +14,13 @@ jobs:
 
       - name: Create go.env from secrets
         run: |
-          echo "SESSION_SECRET=${{ secrets.SESSION_SECRET }}" >> go.env
-          echo "ADMIN_ID=${{ secrets.ADMIN_ID }}" >> go.env
-          echo "ADMIN_PW=${{ secrets.ADMIN_PW }}" >> go.env
-          echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> go.env
-          echo "AWS_REGION=${{ secrets.AWS_REGION }}" >> go.env
-          echo "HOST=${{ secrets.HOST }}" >> go.env
-          echo "PORT=${{ secrets.PORT }}" >> go.env
-          echo "GO_ENV=${{ secrets.GO_ENV }}" >> go.env
+          {
+            echo "SESSION_SECRET=${{ secrets.SESSION_SECRET }}"
+            echo "ADMIN_ID=${{ secrets.ADMIN_ID }}"
+            echo "ADMIN_PW=${{ secrets.ADMIN_PW }}"
+            echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}"
+            echo "AWS_REGION=${{ secrets.AWS_REGION }}"
+          } > go.env
 
       - name: Build Docker image
         run: |
@@ -31,21 +30,21 @@ jobs:
         run: |
           docker save my-go-app | gzip > my-go-app.tar.gz
 
-      - name: Upload private key
-        run: |
-          echo "${{ secrets.EC2_KEY }}" > ec2_key.pem
-          chmod 600 ec2_key.pem
+      - name: Configure SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_KEY }}
 
       - name: SCP Docker image and env to EC2
         run: |
-          scp -i ec2_key.pem -o StrictHostKeyChecking=no my-go-app.tar.gz ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/
-          scp -i ec2_key.pem -o StrictHostKeyChecking=no go.env ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/
+          scp -o StrictHostKeyChecking=no my-go-app.tar.gz ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/
+          scp -o StrictHostKeyChecking=no go.env ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/
 
       - name: SSH into EC2 and deploy
         run: |
-          ssh -i ec2_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             docker stop my-go-app || true
             docker rm my-go-app || true
             gunzip -c my-go-app.tar.gz | docker load
-            docker run -d --name my-go-app --env-file go.env -p 80:8080 my-go-app
+            docker run -d --name my-go-app --env-file go.env -p 8080:8080 my-go-app
           EOF
