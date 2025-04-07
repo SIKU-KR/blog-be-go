@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
@@ -24,4 +25,13 @@ func NewS3Client(ctx context.Context) (*s3.Client, error) {
 		return nil, err
 	}
 	return s3.NewFromConfig(cfg), nil
+}
+
+// NewCloudWatchLogsClient CloudWatch Logs 클라이언트 생성
+func NewCloudWatchLogsClient(ctx context.Context) (*cloudwatchlogs.Client, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return cloudwatchlogs.NewFromConfig(cfg), nil
 }
