@@ -43,49 +43,67 @@ type GetPostsOutput struct {
 }
 
 func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*GetPostsOutput, error) {
-	// 전체 게시글 수를 먼저 조회
-	var expr expression.Expression
-	var err error
-
-	if input.Category != nil && *input.Category != "" {
-		expr, err = buildPostListExpression(*input.Category)
-	} else {
-		expr, err = buildPostListExpression("")
+	// 페이지네이션 계산
+	if input.Page <= 0 {
+		input.Page = 1
 	}
+	if input.PageSize <= 0 {
+		input.PageSize = PageSize
+	}
+
+	// 카테고리 파라미터에 따라 처리 방식 결정
+	if input.Category != nil && *input.Category != "" {
+		// 카테고리가 있는 경우 인덱스를 사용한 Query 수행
+		return r.getPostsByCategory(ctx, *input.Category, input.Page, input.PageSize)
+	} else {
+		// 카테고리가 없는 경우 Scan 작업으로 모든 게시글 조회
+		return r.getAllPosts(ctx, input.Page, input.PageSize)
+	}
+}
+
+// 특정 카테고리의 게시글을 조회하는 함수
+func (r *PostRepository) getPostsByCategory(ctx context.Context, category string, page int32, pageSize int32) (*GetPostsOutput, error) {
+	// 카테고리 인덱스 기반 표현식 생성
+	expr, err := buildPostListExpression(category)
 	if err != nil {
 		return nil, err
 	}
 
+	// Content 필드를 제외한 프로젝션 표현식 생성
+	projectionExp := "postId, title, createdAt, updatedAt, summary, category"
+
+	// 총 개수 조회
 	countResult, err := r.client.Query(ctx, &dynamodb.QueryInput{
 		TableName:                 aws.String(PostTableName),
+		IndexName:                 aws.String("category-index"),
 		KeyConditionExpression:    expr.KeyCondition(),
 		Select:                    types.SelectCount,
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
-		IndexName:                 getIndexName(input.Category),
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	// 페이지네이션 계산
-	offset := (input.Page - 1) * input.PageSize
+	offset := (page - 1) * pageSize
 
-	// 게시글 조회
+	// 게시글 조회 쿼리
 	queryInput := &dynamodb.QueryInput{
 		TableName:                 aws.String(PostTableName),
+		IndexName:                 aws.String("category-index"),
 		KeyConditionExpression:    expr.KeyCondition(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
-		Limit:                     aws.Int32(input.PageSize),
+		ProjectionExpression:      aws.String(projectionExp), // Content 필드 제외
+		Limit:                     aws.Int32(pageSize),
 		ScanIndexForward:          aws.Bool(false), // 최신순 정렬
-		IndexName:                 getIndexName(input.Category),
 	}
 
+	// 오프셋 처리
 	if offset > 0 {
-		// 이전 페이지의 마지막 항목까지 스캔
 		var lastEvaluatedKey map[string]types.AttributeValue
-		for i := int32(0); i < offset/input.PageSize; i++ {
+		for i := int32(0); i < offset/pageSize; i++ {
 			tempResult, err := r.client.Query(ctx, queryInput)
 			if err != nil {
 				return nil, err
@@ -100,7 +118,7 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 		}
 	}
 
-	// 실제 결과 조회
+	// 결과 조회
 	result, err := r.client.Query(ctx, queryInput)
 	if err != nil {
 		return nil, err
@@ -119,25 +137,74 @@ func (r *PostRepository) GetPosts(ctx context.Context, input *GetPostsInput) (*G
 	}, nil
 }
 
-func buildPostListExpression(category string) (expression.Expression, error) {
-	var keyCondition expression.KeyConditionBuilder
+// 모든 게시글을 조회하는 함수 (카테고리 필터 없음)
+func (r *PostRepository) getAllPosts(ctx context.Context, page int32, pageSize int32) (*GetPostsOutput, error) {
+	// Content 필드를 제외한 프로젝션 표현식 생성
+	projectionExp := "postId, title, createdAt, updatedAt, summary, category"
 
-	if category == "" {
-		keyCondition = expression.Key("postId").BeginsWith("")
-	} else {
-		keyCondition = expression.Key("category").Equal(expression.Value(category))
+	// 총 개수 조회를 위한 Scan
+	countResult, err := r.client.Scan(ctx, &dynamodb.ScanInput{
+		TableName: aws.String(PostTableName),
+		Select:    types.SelectCount,
+	})
+	if err != nil {
+		return nil, err
 	}
+
+	// 페이지네이션 계산
+	offset := (page - 1) * pageSize
+
+	// 게시글 조회를 위한 Scan
+	scanInput := &dynamodb.ScanInput{
+		TableName:            aws.String(PostTableName),
+		ProjectionExpression: aws.String(projectionExp), // Content 필드 제외
+		Limit:                aws.Int32(pageSize),
+	}
+
+	// 오프셋 처리
+	if offset > 0 {
+		var lastEvaluatedKey map[string]types.AttributeValue
+		for i := int32(0); i < offset/pageSize; i++ {
+			tempResult, err := r.client.Scan(ctx, scanInput)
+			if err != nil {
+				return nil, err
+			}
+			if tempResult.LastEvaluatedKey == nil {
+				break
+			}
+			lastEvaluatedKey = tempResult.LastEvaluatedKey
+		}
+		if lastEvaluatedKey != nil {
+			scanInput.ExclusiveStartKey = lastEvaluatedKey
+		}
+	}
+
+	// 결과 조회
+	result, err := r.client.Scan(ctx, scanInput)
+	if err != nil {
+		return nil, err
+	}
+
+	// 결과 변환
+	posts := make([]model.Post, 0)
+	err = attributevalue.UnmarshalListOfMaps(result.Items, &posts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GetPostsOutput{
+		Posts:      posts,
+		TotalCount: int64(countResult.Count),
+	}, nil
+}
+
+func buildPostListExpression(category string) (expression.Expression, error) {
+	// 카테고리별 인덱스를 사용한 쿼리 조건 생성
+	keyCondition := expression.Key("category").Equal(expression.Value(category))
 
 	return expression.NewBuilder().
 		WithKeyCondition(keyCondition).
 		Build()
-}
-
-func getIndexName(category *string) *string {
-	if category != nil && *category != "" {
-		return aws.String("category-index")
-	}
-	return nil
 }
 
 func (r *PostRepository) GetPostByID(ctx context.Context, postID string) (*model.Post, error) {
