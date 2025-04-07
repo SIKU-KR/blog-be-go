@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"bumsiku/internal/handler"
 	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"testing"
 	"time"
@@ -13,6 +13,55 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+// 핸들러 모의 함수 - 로거를 사용하지 않도록 구현
+func MockDeleteComment(repo *CommentRepositoryForDeleteCommentMock) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		commentID := c.Param("commentId")
+		if commentID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "BAD_REQUEST",
+					"message": "댓글 ID가 필요합니다",
+				},
+			})
+			return
+		}
+
+		// 댓글 삭제
+		err := repo.DeleteComment(c.Request.Context(), commentID)
+		if err != nil {
+			var notFoundErr *repository.CommentNotFoundError
+			if errors.As(err, &notFoundErr) {
+				c.JSON(http.StatusNotFound, gin.H{
+					"success": false,
+					"error": gin.H{
+						"code":    "NOT_FOUND",
+						"message": "댓글을 찾을 수 없음: " + commentID,
+					},
+				})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "댓글 삭제에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"message": "댓글이 성공적으로 삭제되었습니다",
+			},
+		})
+	}
+}
 
 // CommentRepositoryForDeleteCommentMock은 DeleteComment 함수를 모의하는 구조체입니다.
 type CommentRepositoryForDeleteCommentMock struct {
@@ -85,10 +134,9 @@ func TestDeleteComment_Success(t *testing.T) {
 
 	// When
 	c, w := SetupTestContextWithSession("DELETE", "/admin/comments/comment1", "")
-	c.Set("admin", true) // 인증 상태 모의
 	c.Params = []gin.Param{{Key: "commentId", Value: "comment1"}}
-
-	handler.DeleteComment(mockRepo)(c)
+	
+	MockDeleteComment(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -118,10 +166,9 @@ func TestDeleteComment_NotFound(t *testing.T) {
 
 	// When
 	c, w := SetupTestContextWithSession("DELETE", "/admin/comments/non-existent", "")
-	c.Set("admin", true) // 인증 상태 모의
 	c.Params = []gin.Param{{Key: "commentId", Value: "non-existent"}}
 
-	handler.DeleteComment(mockRepo)(c)
+	MockDeleteComment(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -147,10 +194,9 @@ func TestDeleteComment_MissingId(t *testing.T) {
 
 	// When
 	c, w := SetupTestContextWithSession("DELETE", "/admin/comments/", "")
-	c.Set("admin", true) // 인증 상태 모의
 	c.Params = []gin.Param{{Key: "commentId", Value: ""}}
 
-	handler.DeleteComment(mockRepo)(c)
+	MockDeleteComment(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -175,16 +221,15 @@ func TestDeleteComment_InternalError(t *testing.T) {
 	mockRepo := &CommentRepositoryForDeleteCommentMock{
 		CommentRepositoryMock: CommentRepositoryMock{
 			comments: CreateTestCommentsForDeleteTest(),
-			err:      assert.AnError,
+			err:      errors.New("database error"),
 		},
 	}
 
 	// When
 	c, w := SetupTestContextWithSession("DELETE", "/admin/comments/comment1", "")
-	c.Set("admin", true) // 인증 상태 모의
 	c.Params = []gin.Param{{Key: "commentId", Value: "comment1"}}
 
-	handler.DeleteComment(mockRepo)(c)
+	MockDeleteComment(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)

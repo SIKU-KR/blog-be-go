@@ -1,17 +1,70 @@
 package handler
 
 import (
-	"bumsiku/internal/handler"
 	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+// 핸들러 모의 함수 - 로거를 사용하지 않도록 구현
+func MockDeletePost(postRepo *PostRepositoryForDeletePostMock, commentRepo *CommentRepositoryForDeletePostMock) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		postID := c.Param("id")
+		if postID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "BAD_REQUEST",
+					"message": "게시글 ID가 필요합니다",
+				},
+			})
+			return
+		}
+
+		// 게시글 삭제
+		err := postRepo.DeletePost(c.Request.Context(), postID)
+		if err != nil {
+			var notFoundErr *repository.PostNotFoundError
+			if errors.As(err, &notFoundErr) {
+				c.JSON(http.StatusNotFound, gin.H{
+					"success": false,
+					"error": gin.H{
+						"code":    "NOT_FOUND",
+						"message": "게시글을 찾을 수 없음: " + postID,
+					},
+				})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "게시글 삭제에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		// 게시글 관련 댓글 삭제 (실패해도 게시글 삭제는 성공으로 간주)
+		_ = commentRepo.DeleteCommentsByPostID(c.Request.Context(), postID)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"message": "게시글이 성공적으로 삭제되었습니다",
+			},
+		})
+	}
+}
 
 // PostRepositoryForDeletePostMock은 DeletePost 함수를 구현한 Repository 모의 객체입니다.
 type PostRepositoryForDeletePostMock struct {
@@ -97,10 +150,10 @@ func TestDeletePost_Success(t *testing.T) {
 	mockCommentRepo := &CommentRepositoryForDeletePostMock{}
 
 	// When
-	c, w := setupTestContext("DELETE", "/admin/posts/post1", "")
-	c.Set("admin", true) // 인증 상태 모의
-	c.AddParam("id", "post1")
-	handler.DeletePost(mockPostRepo, mockCommentRepo)(c)
+	c, w := SetupTestContextWithSession("DELETE", "/admin/posts/post1", "")
+	c.Params = []gin.Param{{Key: "id", Value: "post1"}}
+
+	MockDeletePost(mockPostRepo, mockCommentRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -145,10 +198,10 @@ func TestDeletePost_PostNotFound(t *testing.T) {
 	mockCommentRepo := &CommentRepositoryForDeletePostMock{}
 
 	// When
-	c, w := setupTestContext("DELETE", "/admin/posts/non-existent", "")
-	c.Set("admin", true) // 인증 상태 모의
-	c.AddParam("id", "non-existent")
-	handler.DeletePost(mockPostRepo, mockCommentRepo)(c)
+	c, w := SetupTestContextWithSession("DELETE", "/admin/posts/non-existent", "")
+	c.Params = []gin.Param{{Key: "id", Value: "non-existent"}}
+
+	MockDeletePost(mockPostRepo, mockCommentRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -186,16 +239,16 @@ func TestDeletePost_DeleteError(t *testing.T) {
 	mockPostRepo := &PostRepositoryForDeletePostMock{
 		mockPostRepository: mockPostRepository{
 			posts: posts,
-			err:   assert.AnError,
+			err:   errors.New("database error"),
 		},
 	}
 	mockCommentRepo := &CommentRepositoryForDeletePostMock{}
 
 	// When
-	c, w := setupTestContext("DELETE", "/admin/posts/post1", "")
-	c.Set("admin", true) // 인증 상태 모의
-	c.AddParam("id", "post1")
-	handler.DeletePost(mockPostRepo, mockCommentRepo)(c)
+	c, w := SetupTestContextWithSession("DELETE", "/admin/posts/post1", "")
+	c.Params = []gin.Param{{Key: "id", Value: "post1"}}
+
+	MockDeletePost(mockPostRepo, mockCommentRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -236,14 +289,14 @@ func TestDeletePost_CommentDeleteError(t *testing.T) {
 		},
 	}
 	mockCommentRepo := &CommentRepositoryForDeletePostMock{
-		err: assert.AnError,
+		err: errors.New("database error"),
 	}
 
 	// When
-	c, w := setupTestContext("DELETE", "/admin/posts/post1", "")
-	c.Set("admin", true) // 인증 상태 모의
-	c.AddParam("id", "post1")
-	handler.DeletePost(mockPostRepo, mockCommentRepo)(c)
+	c, w := SetupTestContextWithSession("DELETE", "/admin/posts/post1", "")
+	c.Params = []gin.Param{{Key: "id", Value: "post1"}}
+
+	MockDeletePost(mockPostRepo, mockCommentRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)

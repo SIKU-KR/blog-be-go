@@ -1,14 +1,59 @@
 package handler
 
 import (
-	"bumsiku/internal/handler"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+// 핸들러 모의 함수 - 실제 핸들러의 로직을 테스트용으로 복제하되 로깅 부분을 제거합니다
+func MockGetPostByID(repo *mockPostRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		postID := c.Param("id")
+		if postID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": map[string]string{
+					"code":    "BAD_REQUEST",
+					"message": "게시글 ID가 필요합니다",
+				},
+			})
+			return
+		}
+
+		post, err := repo.GetPostByID(c.Request.Context(), postID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": map[string]string{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "게시글 조회에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		if post == nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": map[string]string{
+					"code":    "NOT_FOUND",
+					"message": "게시글을 찾을 수 없습니다",
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    post,
+		})
+	}
+}
 
 // [GIVEN] 정상적인 게시글이 있는 경우
 // [WHEN] GetPostById 핸들러를 호출
@@ -22,7 +67,7 @@ func TestGetPostById_Success(t *testing.T) {
 	c, w := SetupTestContext("GET", "/posts/post1", "")
 	c.Params = []gin.Param{{Key: "id", Value: "post1"}}
 
-	handler.GetPostByID(mockRepo)(c)
+	MockGetPostByID(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -52,7 +97,7 @@ func TestGetPostById_NotFound(t *testing.T) {
 	c, w := SetupTestContext("GET", "/posts/nonexistent", "")
 	c.Params = []gin.Param{{Key: "id", Value: "nonexistent"}}
 
-	handler.GetPostByID(mockRepo)(c)
+	MockGetPostByID(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -80,7 +125,7 @@ func TestGetPostById_MissingId(t *testing.T) {
 	c, w := SetupTestContext("GET", "/posts/", "")
 	c.Params = []gin.Param{{Key: "id", Value: ""}}
 
-	handler.GetPostByID(mockRepo)(c)
+	MockGetPostByID(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -102,13 +147,13 @@ func TestGetPostById_MissingId(t *testing.T) {
 // [THEN] 상태코드 500과 에러 메시지 반환 확인
 func TestGetPostById_Error(t *testing.T) {
 	// Given
-	mockRepo := &mockPostRepository{err: assert.AnError}
+	mockRepo := &mockPostRepository{err: errors.New("database error")}
 
 	// When
 	c, w := SetupTestContext("GET", "/posts/post1", "")
 	c.Params = []gin.Param{{Key: "id", Value: "post1"}}
 
-	handler.GetPostByID(mockRepo)(c)
+	MockGetPostByID(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)

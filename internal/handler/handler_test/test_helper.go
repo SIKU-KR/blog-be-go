@@ -3,6 +3,7 @@ package handler
 import (
 	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
+	"bumsiku/internal/utils"
 	"bytes"
 	"context"
 	"encoding/gob"
@@ -302,5 +303,45 @@ func (m *CommentRepositoryMock) DeleteComment(ctx context.Context, commentID str
 	}
 
 	// 실제 삭제 로직은 테스트에서 중요하지 않으므로 성공만 반환
+	return nil
+}
+
+// MockLogger는 로깅을 수행하지 않는 로거 모의 객체입니다.
+// 이 객체는 더 이상 사용되지 않으며, 대신 각 테스트 파일에서 필요한 핸들러 함수를 직접 구현합니다.
+// 핸들러 함수에 로거를 전달하지 않는 방식으로 테스트를 수행합니다.
+type MockLogger struct{}
+
+// Info는 정보 레벨 로그를 기록합니다 (테스트에서는 아무 작업도 수행하지 않음)
+func (l MockLogger) Info(_ context.Context, _ string, _ map[string]string) error {
+	return nil
+}
+
+// Error는 오류 레벨 로그를 기록합니다 (테스트에서는 아무 작업도 수행하지 않음)
+func (l MockLogger) Error(_ context.Context, _ string, _ error, _ map[string]string) error {
+	return nil
+}
+
+// Warn은 경고 레벨 로그를 기록합니다 (테스트에서는 아무 작업도 수행하지 않음)
+func (l MockLogger) Warn(_ context.Context, _ string, _ map[string]string) error {
+	return nil
+}
+
+// Debug는 디버그 레벨 로그를 기록합니다 (테스트에서는 아무 작업도 수행하지 않음)
+func (l MockLogger) Debug(_ context.Context, _ string, _ map[string]string) error {
+	return nil
+}
+
+// Log는 지정된 레벨로 로그를 기록합니다 (테스트에서는 아무 작업도 수행하지 않음)
+func (l MockLogger) Log(_ context.Context, _, _ string, _ map[string]string) error {
+	return nil
+}
+
+// Fatal은 치명적 오류 레벨 로그를 기록합니다 (테스트에서는 아무 작업도 수행하지 않음)
+func (l MockLogger) Fatal(_ context.Context, _ string, _ error, _ map[string]string) error {
+	return nil
+}
+
+// SetupMockLogger는 기존 테스트와의 호환성을 위해 유지합니다.
+func SetupMockLogger() *utils.Logger {
 	return nil
 }

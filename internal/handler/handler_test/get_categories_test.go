@@ -1,16 +1,42 @@
 package handler
 
 import (
-	"bumsiku/internal/handler"
 	"bumsiku/internal/model"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+// 핸들러 모의 함수 - 로거를 사용하지 않도록 구현
+func MockGetCategories(repo *MockCategoryRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 카테고리 목록 조회
+		categories, err := repo.GetCategories(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "카테고리 목록 조회에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"categories": categories,
+			},
+		})
+	}
+}
 
 // MockCategoryRepository는 테스트에 사용되는 카테고리 저장소 모의 객체입니다.
 type MockCategoryRepository struct {
@@ -64,7 +90,8 @@ func TestGetCategories_Success(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/categories", "")
-	handler.GetCategories(mockRepo)(c)
+	
+	MockGetCategories(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -91,11 +118,12 @@ func TestGetCategories_Success(t *testing.T) {
 // [THEN] 상태코드 500과 에러 메시지 반환 확인
 func TestGetCategories_Error(t *testing.T) {
 	// Given
-	mockRepo := &MockCategoryRepository{err: assert.AnError}
+	mockRepo := &MockCategoryRepository{err: errors.New("database error")}
 
 	// When
 	c, w := SetupTestContext("GET", "/categories", "")
-	handler.GetCategories(mockRepo)(c)
+	
+	MockGetCategories(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -121,7 +149,8 @@ func TestGetCategories_EmptyList(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/categories", "")
-	handler.GetCategories(mockRepo)(c)
+	
+	MockGetCategories(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)

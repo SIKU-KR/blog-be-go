@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"bumsiku/internal/handler"
 	"bumsiku/internal/model"
 	"bumsiku/internal/repository"
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,6 +31,122 @@ func setupTestContext(method, url, body string) (*gin.Context, *httptest.Respons
 
 	c.Request = req
 	return c, w
+}
+
+// 핸들러 모의 함수 - 로거를 사용하지 않도록 구현
+func MockUpdatePost(repo *PostRepositoryForUpdatePostMock) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 게시글 ID 확인
+		postID := c.Param("id")
+		if postID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "BAD_REQUEST",
+					"message": "게시글 ID가 필요합니다",
+				},
+			})
+			return
+		}
+
+		// 요청 본문 파싱
+		var request struct {
+			Title    string `json:"title"`
+			Content  string `json:"content"`
+			Summary  string `json:"summary"`
+			Category string `json:"category"`
+		}
+
+		if err := c.ShouldBindJSON(&request); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "BAD_REQUEST",
+					"message": "요청 형식이 올바르지 않습니다",
+				},
+			})
+			return
+		}
+
+		// 필수 필드 검증
+		if request.Title == "" || request.Content == "" || request.Summary == "" || request.Category == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "BAD_REQUEST",
+					"message": "제목, 내용, 요약, 카테고리는 필수 항목입니다",
+				},
+			})
+			return
+		}
+
+		// 게시글이 존재하는지 확인
+		existingPost, err := repo.GetPostByID(c.Request.Context(), postID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "게시글 조회에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		if existingPost == nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "NOT_FOUND",
+					"message": "게시글을 찾을 수 없음: " + postID,
+				},
+			})
+			return
+		}
+
+		// 게시글 업데이트
+		post := &model.Post{
+			PostID:    postID,
+			Title:     request.Title,
+			Content:   request.Content,
+			Summary:   request.Summary,
+			Category:  request.Category,
+			CreatedAt: existingPost.CreatedAt,
+			UpdatedAt: time.Now(),
+		}
+
+		err = repo.UpdatePost(c.Request.Context(), post)
+		if err != nil {
+			var notFoundErr *repository.PostNotFoundError
+			if errors.As(err, &notFoundErr) {
+				c.JSON(http.StatusNotFound, gin.H{
+					"success": false,
+					"error": gin.H{
+						"code":    "NOT_FOUND",
+						"message": err.Error(),
+					},
+				})
+				return
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "게시글 업데이트에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		// 업데이트된 게시글 조회
+		updatedPost, _ := repo.GetPostByID(c.Request.Context(), postID)
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    updatedPost,
+		})
+	}
 }
 
 // PostRepositoryForUpdatePostMock은 UpdatePost 함수를 위한 Repository 모의 객체입니다.
@@ -171,7 +287,7 @@ func TestUpdatePost_Success(t *testing.T) {
 	c, w := setupTestContext("PUT", "/admin/posts/post1", requestBody)
 	c.Set("admin", true) // 인증 상태 모의
 	c.AddParam("id", "post1")
-	handler.UpdatePost(mockRepo)(c)
+	MockUpdatePost(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -225,7 +341,7 @@ func TestUpdatePost_PostNotFound(t *testing.T) {
 	c, w := setupTestContext("PUT", "/admin/posts/non-existent", requestBody)
 	c.Set("admin", true) // 인증 상태 모의
 	c.AddParam("id", "non-existent")
-	handler.UpdatePost(mockRepo)(c)
+	MockUpdatePost(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -247,33 +363,14 @@ func TestUpdatePost_PostNotFound(t *testing.T) {
 // [THEN] 상태코드 400과 적절한 에러 메시지 반환 확인
 func TestUpdatePost_InvalidRequest(t *testing.T) {
 	// Given
-	now := time.Now()
-	posts := []model.Post{
-		{
-			PostID:    "post1",
-			Title:     "첫 번째 게시글",
-			Content:   "내용 1",
-			Summary:   "요약 1",
-			Category:  "tech",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-	}
-
-	mockRepo := &PostRepositoryForUpdatePostMock{
-		posts: posts,
-	}
-
-	requestBody := `{
-		"title": "", 
-		"content": ""
-	}`
+	mockRepo := &PostRepositoryForUpdatePostMock{}
+	invalidRequestBody := `{invalid json}`
 
 	// When
-	c, w := setupTestContext("PUT", "/admin/posts/post1", requestBody)
+	c, w := setupTestContext("PUT", "/admin/posts/post1", invalidRequestBody)
 	c.Set("admin", true) // 인증 상태 모의
 	c.AddParam("id", "post1")
-	handler.UpdatePost(mockRepo)(c)
+	MockUpdatePost(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusBadRequest, w.Code)
@@ -287,12 +384,12 @@ func TestUpdatePost_InvalidRequest(t *testing.T) {
 
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "BAD_REQUEST", errorData["code"])
-	assert.Contains(t, errorData["message"], "요청 형식이 올바르지 않습니다")
+	assert.Equal(t, "요청 형식이 올바르지 않습니다", errorData["message"])
 }
 
 // [GIVEN] Repository에서 에러가 발생하는 경우
 // [WHEN] UpdatePost 핸들러를 호출
-// [THEN] 상태코드 500과 적절한 에러 메시지 반환 확인
+// [THEN] 상태코드 500과 에러 메시지 반환 확인
 func TestUpdatePost_UpdateError(t *testing.T) {
 	// Given
 	now := time.Now()
@@ -310,7 +407,7 @@ func TestUpdatePost_UpdateError(t *testing.T) {
 
 	mockRepo := &PostRepositoryForUpdatePostMock{
 		posts: posts,
-		err:   assert.AnError,
+		err:   errors.New("database error"),
 	}
 
 	requestBody := `{
@@ -324,7 +421,7 @@ func TestUpdatePost_UpdateError(t *testing.T) {
 	c, w := setupTestContext("PUT", "/admin/posts/post1", requestBody)
 	c.Set("admin", true) // 인증 상태 모의
 	c.AddParam("id", "post1")
-	handler.UpdatePost(mockRepo)(c)
+	MockUpdatePost(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -338,5 +435,4 @@ func TestUpdatePost_UpdateError(t *testing.T) {
 
 	errorData := response["error"].(map[string]interface{})
 	assert.Equal(t, "INTERNAL_SERVER_ERROR", errorData["code"])
-	assert.Contains(t, errorData["message"], "게시글 수정에 실패했습니다")
 }

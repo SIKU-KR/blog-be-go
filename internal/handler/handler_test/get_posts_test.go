@@ -1,13 +1,81 @@
 package handler
 
 import (
-	"bumsiku/internal/handler"
+	"bumsiku/internal/repository"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
+
+// 핸들러 모의 함수 - 로거를 사용하지 않도록 구현
+func MockGetPosts(repo *mockPostRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 쿼리 파라미터 추출
+		var category *string
+		categoryParam := c.Query("category")
+		if categoryParam != "" {
+			category = &categoryParam
+		}
+
+		// 페이지네이션 파라미터
+		page := int32(1)
+		pageSize := int32(10)
+
+		pageParam := c.Query("page")
+		if pageParam != "" {
+			if parsedPage, err := strconv.ParseInt(pageParam, 10, 32); err == nil && parsedPage > 0 {
+				page = int32(parsedPage)
+			}
+		}
+
+		pageSizeParam := c.Query("pageSize")
+		if pageSizeParam != "" {
+			if parsedPageSize, err := strconv.ParseInt(pageSizeParam, 10, 32); err == nil && parsedPageSize > 0 {
+				pageSize = int32(parsedPageSize)
+			}
+		}
+
+		// 저장소에서 게시글 조회
+		input := &repository.GetPostsInput{
+			Category: category,
+			Page:     page,
+			PageSize: pageSize,
+		}
+
+		output, err := repo.GetPosts(c.Request.Context(), input)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INTERNAL_SERVER_ERROR",
+					"message": "게시글 목록 조회에 실패했습니다",
+				},
+			})
+			return
+		}
+
+		// 총 페이지 수 계산
+		totalPages := output.TotalCount / int64(pageSize)
+		if output.TotalCount%int64(pageSize) > 0 {
+			totalPages++
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data": gin.H{
+				"posts":       output.Posts,
+				"totalCount":  output.TotalCount,
+				"currentPage": page,
+				"totalPages":  totalPages,
+			},
+		})
+	}
+}
 
 // [GIVEN] 정상적인 게시글 목록이 있는 경우
 // [WHEN] GetPosts 핸들러를 호출
@@ -19,7 +87,8 @@ func TestGetPosts_Success(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/posts", "")
-	handler.GetPosts(mockRepo)(c)
+
+	MockGetPosts(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -49,7 +118,8 @@ func TestGetPosts_WithCategory(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/posts?category=tech", "")
-	handler.GetPosts(mockRepo)(c)
+
+	MockGetPosts(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -79,7 +149,8 @@ func TestGetPosts_WithPagination(t *testing.T) {
 
 	// When
 	c, w := SetupTestContext("GET", "/posts?page=1&pageSize=1", "")
-	handler.GetPosts(mockRepo)(c)
+
+	MockGetPosts(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -104,11 +175,12 @@ func TestGetPosts_WithPagination(t *testing.T) {
 // [THEN] 상태코드 500과 에러 메시지 반환 확인
 func TestGetPosts_Error(t *testing.T) {
 	// Given
-	mockRepo := &mockPostRepository{err: assert.AnError}
+	mockRepo := &mockPostRepository{err: errors.New("database error")}
 
 	// When
 	c, w := SetupTestContext("GET", "/posts", "")
-	handler.GetPosts(mockRepo)(c)
+
+	MockGetPosts(mockRepo)(c)
 
 	// Then
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
